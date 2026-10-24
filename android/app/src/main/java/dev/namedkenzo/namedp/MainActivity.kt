@@ -78,6 +78,7 @@ class MainActivity:Activity() {
         @Suppress("DEPRECATION")
         window.decorView.systemUiVisibility=if(night)0 else View.SYSTEM_UI_FLAG_LIGHT_STATUS_BAR or View.SYSTEM_UI_FLAG_LIGHT_NAVIGATION_BAR
         root=LinearLayout(this).apply {orientation=LinearLayout.VERTICAL;setBackgroundColor(bg);setPadding(dp(22),dp(12),dp(22),dp(10))}
+        root.layoutDirection=if(fa)View.LAYOUT_DIRECTION_RTL else View.LAYOUT_DIRECTION_LTR
         setContentView(root)
         if(Build.VERSION.SDK_INT>=35) {
             root.setOnApplyWindowInsetsListener { view,insets ->

@@ -71,6 +71,10 @@ jobs:
           cp android/app/build/outputs/apk/debug/app-debug.apk dist/android/namedP-android-0.1.0-alpha-debug.apk
           cp android/app/build/outputs/apk/androidTest/debug/app-debug-androidTest.apk dist/android/namedP-android-ui-tests.apk
           (cd dist/android && sha256sum namedP-android-0.1.0-alpha-debug.apk > SHA256SUMS)
+      - name: Record credential-free interface previews
+        run: |
+          echo "NAMEDP_LIGHT_PREVIEW=$(base64 -w0 dist/android/previews/light-idle.png)"
+          echo "NAMEDP_DARK_PREVIEW=$(base64 -w0 dist/android/previews/dark-idle.png)"
       - uses: actions/upload-artifact@v7
         with:
           name: namedP-android-development
@@ -100,6 +104,10 @@ jobs:
         with:
           name: namedP-android-development
           path: android-release
+      - uses: actions/download-artifact@v8
+        with:
+          name: namedP-android-ui-previews
+          path: android-previews
       - env:
           GH_TOKEN: ${{ github.token }}
-        run: gh release create android-v0.1.0-alpha android-release/*.apk android-release/SHA256SUMS --target "$GITHUB_SHA" --prerelease --title 'namedP Android 0.1.0-alpha · Development APK' --notes-file docs/RELEASE-android-v0.1.0-alpha.md
+        run: gh release create android-v0.1.0-alpha android-release/*.apk android-release/SHA256SUMS android-previews/*.png --target "$GITHUB_SHA" --prerelease --title 'namedP Android 0.1.0-alpha · Development APK' --notes-file docs/RELEASE-android-v0.1.0-alpha.md

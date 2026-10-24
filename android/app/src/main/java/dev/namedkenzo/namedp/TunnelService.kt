@@ -122,7 +122,7 @@ class TunnelService: VpnService() {
         manager.createNotificationChannel(NotificationChannel("namedp","namedP connection",NotificationManager.IMPORTANCE_LOW))
         val open=PendingIntent.getActivity(this,1,Intent(this,MainActivity::class.java),PendingIntent.FLAG_IMMUTABLE or PendingIntent.FLAG_UPDATE_CURRENT)
         val stop=PendingIntent.getService(this,2,Intent(this,TunnelService::class.java).setAction("stop"),PendingIntent.FLAG_IMMUTABLE or PendingIntent.FLAG_UPDATE_CURRENT)
-        val note=Notification.Builder(this,"namedp").setSmallIcon(dev.namedkenzo.namedp.R.drawable.ic_paw)
+        val note=Notification.Builder(this,"namedp").setSmallIcon(dev.namedkenzo.namedp.R.drawable.ic_notification)
             .setContentTitle("namedP").setContentText(text).setOngoing(true).setContentIntent(open)
             .addAction(Notification.Action.Builder(null,"Disconnect",stop).build()).build()
         if(Build.VERSION.SDK_INT>=34)startForeground(17,note,ServiceInfo.FOREGROUND_SERVICE_TYPE_SPECIAL_USE) else startForeground(17,note)

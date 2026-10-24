@@ -13,6 +13,14 @@ import java.io.File
 
 @RunWith(AndroidJUnit4::class)
 class InterfaceTest {
+ @Test fun nativeEngineOpensRootlessPingSocket() {
+  val context=InstrumentationRegistry.getInstrumentation().targetContext
+  val process=ProcessBuilder(File(context.applicationInfo.nativeLibraryDir,"libnamedp.so").absolutePath,"--self-test-socket").redirectErrorStream(true).start()
+  assertTrue("Native socket self-test timeout",process.waitFor(8,java.util.concurrent.TimeUnit.SECONDS))
+  val output=process.inputStream.bufferedReader().readText()
+  assertEquals(output,0,process.exitValue())
+  assertTrue(output,output.contains("ping-socket-ready"))
+ }
  @Test fun rendersThemesAndConnectionStates() {
   val context=InstrumentationRegistry.getInstrumentation().targetContext
   ActivityScenario.launch<MainActivity>(Intent(context,MainActivity::class.java)).use { scenario ->
