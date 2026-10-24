@@ -64,10 +64,11 @@ jobs:
           script: |
             gradle -p android connectedDebugAndroidTest
             mkdir -p dist/android/previews
-            adb exec-out run-as dev.namedkenzo.namedp cat files/preview-light-idle.png > dist/android/previews/light-idle.png
-            adb exec-out run-as dev.namedkenzo.namedp cat files/preview-dark-idle.png > dist/android/previews/dark-idle.png
-            adb exec-out run-as dev.namedkenzo.namedp cat files/preview-dark-connecting.png > dist/android/previews/dark-connecting.png
-            adb exec-out run-as dev.namedkenzo.namedp cat files/preview-dark-connected-preview.png > dist/android/previews/dark-connected-preview.png
+            adb pull /sdcard/Pictures/namedP-tests/preview-light-idle.png dist/android/previews/light-idle.png
+            adb pull /sdcard/Pictures/namedP-tests/preview-dark-idle.png dist/android/previews/dark-idle.png
+            adb pull /sdcard/Pictures/namedP-tests/preview-dark-connecting.png dist/android/previews/dark-connecting.png
+            adb pull /sdcard/Pictures/namedP-tests/preview-dark-connected-preview.png dist/android/previews/dark-connected-preview.png
+            node scripts/check_png.cjs dist/android/previews
       - name: Package development APK
         run: |
           mkdir -p dist/android
@@ -113,4 +114,10 @@ jobs:
           path: android-previews
       - env:
           GH_TOKEN: ${{ github.token }}
-        run: gh release create android-v0.1.0-alpha android-release/*.apk android-release/SHA256SUMS android-previews/*.png --target "$GITHUB_SHA" --prerelease --title 'namedP Android 0.1.0-alpha · Development APK' --notes-file docs/RELEASE-android-v0.1.0-alpha.md
+        run: |
+          if gh release view android-v0.1.0-alpha >/dev/null 2>&1; then
+            # Preserve the original tagged APK/checksum; repair only its previews.
+            gh release upload android-v0.1.0-alpha android-previews/*.png --clobber
+          else
+            gh release create android-v0.1.0-alpha android-release/*.apk android-release/SHA256SUMS android-previews/*.png --target "$GITHUB_SHA" --prerelease --title 'namedP Android 0.1.0-alpha · Development APK' --notes-file docs/RELEASE-android-v0.1.0-alpha.md
+          fi

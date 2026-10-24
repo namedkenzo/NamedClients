@@ -17,4 +17,4 @@ No reference-server source is shipped in client releases. The checkout is a test
 
 ## Android
 
-Development location reserved; no app/APK implemented yet. The public Windows workflow does not build or publish Android. The owner's earlier personal-delivery request remains unresolved for Android because this destination repository is public.
+The owner explicitly approved public Android source and delivery. The initial 0.1.0-alpha Android implementation and development APK use a separate workflow/release. Android does not modify or replace the Windows UI. Real-device/VPS acceptance is still pending.

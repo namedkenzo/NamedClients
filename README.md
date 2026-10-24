@@ -7,7 +7,7 @@
 | Platform | Status | Source |
 | --- | --- | --- |
 | Windows 10/11 x64 | namedP `0.1.0-alpha` | [windows/namedP](windows/namedP) |
-| Android | Planned; no application or APK built yet | [android](android) |
+| Android 8+ (arm64) | `0.1.0-alpha` development APK | [android](android) · [Download](https://github.com/namedkenzo/NamedClients/releases/tag/android-v0.1.0-alpha) |
 
 ## Windows: connect in three steps
 
@@ -21,7 +21,11 @@ The app follows the system theme by default, supports dark/light overrides and i
 
 ## Android
 
-The `android/` directory is the development location. No Android implementation or APK is included yet. Android's public/private delivery is a separate decision; the Windows workflow does not publish Android files.
+The Android app is now available as a **debug-signed development APK**, not a production/Play Store release. It has its own connection-first UI, Home/Connections/Settings, system/light/dark themes, Persian/English labels and animated dachshund. Profiles are protected with Android Keystore. Rootless ICMP depends on device/kernel support. [Android guide](android/README.md) · [Development APK](https://github.com/namedkenzo/NamedClients/releases/tag/android-v0.1.0-alpha).
+
+Emulator profile/UI tests and native rootless socket execution passed. A real phone/VPS connection, throughput and leak acceptance are still pending. Windows functionality was not redesigned as part of the Android work.
+
+[Light interface preview](https://github.com/namedkenzo/NamedClients/releases/download/android-v0.1.0-alpha/light-idle.png) · [Dark interface preview](https://github.com/namedkenzo/NamedClients/releases/download/android-v0.1.0-alpha/dark-idle.png)
 
 ## Repository layout
 

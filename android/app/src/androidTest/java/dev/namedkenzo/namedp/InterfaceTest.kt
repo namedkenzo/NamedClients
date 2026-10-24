@@ -3,6 +3,8 @@ package dev.namedkenzo.namedp
 import android.content.Intent
 import android.graphics.Bitmap
 import android.graphics.Canvas
+import android.content.ContentValues
+import android.provider.MediaStore
 import androidx.test.core.app.ActivityScenario
 import androidx.test.platform.app.InstrumentationRegistry
 import androidx.test.ext.junit.runners.AndroidJUnit4
@@ -32,7 +34,15 @@ class InterfaceTest {
      assertTrue("Window must be laid out",view.width>0 && view.height>0)
      val bitmap=Bitmap.createBitmap(view.width,view.height,Bitmap.Config.ARGB_8888)
      view.draw(Canvas(bitmap))
-     File(context.filesDir,"preview-$name.png").outputStream().use { bitmap.compress(Bitmap.CompressFormat.PNG,100,it) }
+     val values=ContentValues().apply {
+      put(MediaStore.Images.Media.DISPLAY_NAME,"preview-$name.png")
+      put(MediaStore.Images.Media.MIME_TYPE,"image/png")
+      put(MediaStore.Images.Media.RELATIVE_PATH,"Pictures/namedP-tests")
+      put(MediaStore.Images.Media.IS_PENDING,1)
+     }
+     val uri=context.contentResolver.insert(MediaStore.Images.Media.EXTERNAL_CONTENT_URI,values) ?: error("Screenshot output unavailable")
+     context.contentResolver.openOutputStream(uri)!!.use { bitmap.compress(Bitmap.CompressFormat.PNG,100,it) }
+     context.contentResolver.update(uri,ContentValues().apply {put(MediaStore.Images.Media.IS_PENDING,0)},null,null)
      bitmap.recycle()
     }
    }
