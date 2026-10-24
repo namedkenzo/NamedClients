@@ -4,6 +4,9 @@
 **/obj/
 /windows/namedP.Smoke/preview-*.png
 /.gradle/
+**/.gradle/
+**/jniLibs/
+android/app/src/main/assets/licenses/
 **/build/
 local.properties
 *.jks
