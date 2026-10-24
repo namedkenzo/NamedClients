@@ -7,6 +7,7 @@ import android.app.AlertDialog
 import android.view.View
 import android.widget.EditText
 import android.widget.Spinner
+import android.widget.TextView
 import android.graphics.Bitmap
 import android.graphics.Canvas
 import android.content.ContentValues
@@ -55,12 +56,17 @@ class InterfaceTest {
   ActivityScenario.launch<MainActivity>(Intent(context,MainActivity::class.java)).use { scenario ->
    scenario.onActivity { activity ->
     activity.window.decorView.findViewWithTag<View>("manual-profile").performClick()
+   }
+   InstrumentationRegistry.getInstrumentation().waitForIdleSync()
+   scenario.onActivity { activity ->
     val dialog=activity.manualDialogForTest()
     val view=dialog.window!!.decorView
     view.findViewWithTag<EditText>("manual-server").setText("example.com")
     view.findViewWithTag<EditText>("manual-credential").setText("123456")
     dialog.getButton(AlertDialog.BUTTON_POSITIVE).performClick()
-    assertEquals("example.com",ProfileStore(activity).read().single().name)
+    val saved=ProfileStore(activity).read()
+    assertTrue("Manual numeric save failed: "+view.findViewWithTag<TextView>("manual-error").text,saved.isNotEmpty())
+    assertEquals("example.com",saved.single().name)
     activity.window.decorView.findViewWithTag<View>("manual-profile").performClick()
     activity.manualDialogForTest().window!!.decorView.findViewWithTag<Spinner>("manual-auth").setSelection(2)
    }

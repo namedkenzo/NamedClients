@@ -201,7 +201,7 @@ class MainActivity:Activity() {
         val server=field("server",tr("Server IPv4 or domain","آی‌پی IPv4 یا دامنهٔ سرور"),InputType.TYPE_CLASS_TEXT or InputType.TYPE_TEXT_VARIATION_URI).apply{hint="vpn.example.com";textDirection=View.TEXT_DIRECTION_LTR}
         box.addView(text(tr("Authentication","احراز هویت"),12f,muted))
         val methods=listOf("none","aes128","aes256","chacha20")
-        val auth=Spinner(formContext).apply{tag="manual-auth";adapter=ArrayAdapter(formContext,android.R.layout.simple_spinner_dropdown_item,listOf(tr("Numeric key · no encryption","رمز عددی · بدون رمزنگاری"),"AES-128","AES-256","ChaCha20"));box.addView(this,LinearLayout.LayoutParams(-1,dp(48)))}
+        val auth=Spinner(formContext).apply{tag="manual-auth";adapter=ArrayAdapter(formContext,android.R.layout.simple_spinner_dropdown_item,listOf(tr("Numeric key · no encryption","رمز عددی · بدون رمزنگاری"),"AES-128","AES-256","ChaCha20"));setSelection(0);box.addView(this,LinearLayout.LayoutParams(-1,dp(48)))}
         val secret=field("credential",tr("Key","رمز"),InputType.TYPE_CLASS_TEXT or InputType.TYPE_TEXT_VARIATION_PASSWORD).apply{textDirection=View.TEXT_DIRECTION_LTR}
         auth.onItemSelectedListener=object:AdapterView.OnItemSelectedListener {
             private var previous=0
@@ -220,7 +220,7 @@ class MainActivity:Activity() {
         d.setOnShowListener{d.getButton(AlertDialog.BUTTON_POSITIVE).setOnClickListener{try{
             val title=name.text.toString().trim()
             if(title.length>60)throw ProfileInputException("name","Name must be at most 60 characters.","نام باید حداکثر ۶۰ کاراکتر باشد.")
-            val value=Profile.manualLink(server.text.toString(),port.text.toString(),if(connectionMode.selectedItemPosition==0)"vpn"else"proxy",methods[auth.selectedItemPosition],secret.text.toString())
+            val value=Profile.manualLink(server.text.toString(),port.text.toString(),if(connectionMode.selectedItemPosition==1)"proxy"else"vpn",methods[auth.selectedItemPosition.coerceIn(methods.indices)],secret.text.toString())
             saveProfile(value,title);d.dismiss()
         }catch(e:Exception){error.text=inputError(e);if(e is ProfileInputException)fields[e.field]?.requestFocus()}}}
         profileDialog=d;d.setOnDismissListener{profileDialog=null}
