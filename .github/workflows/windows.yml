@@ -1,0 +1,109 @@
+name: namedP Windows client
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  linux:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-go@v7
+        with:
+          go-version: '1.27.3'
+      - run: go test -race ./...
+      - run: go vet ./...
+      - run: node scripts/test_versions.cjs
+      - uses: actions/checkout@v7
+        with:
+          repository: namedkenzo/NamedICMP
+          ref: 19843b1aab9b1ebaefd031d54e0892ceb69bd8f4
+          path: .compat-server
+      - run: node scripts/check_server_compat.cjs .compat-server
+  windows:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-go@v7
+        with:
+          go-version: '1.27.3'
+      - uses: actions/setup-dotnet@v5
+        with:
+          dotnet-version: '8.0.x'
+      - run: go test -race ./internal/client ./internal/reliable ./internal/wire
+      - run: go vet ./internal/client ./cmd/namedp-engine
+      - run: dotnet publish windows/namedP/namedP.csproj -c Release -r win-x64 --self-contained true -o dist/namedP
+      - run: go build -trimpath -ldflags='-s -w' -o dist/namedP/namedp-engine.exe ./cmd/namedp-engine
+      - name: Verify independent client version
+        shell: pwsh
+        run: |
+          $version = (Get-Content windows/namedP/VERSION -Raw).Trim()
+          [xml]$project = Get-Content windows/namedP/namedP.csproj
+          if ($project.Project.PropertyGroup.Version -ne $version) { throw 'Client project version mismatch' }
+          $engineVersion = (& dist/namedP/namedp-engine.exe --version).Trim()
+          if ($LASTEXITCODE -ne 0 -or $engineVersion -ne $version) { throw 'Client engine version mismatch' }
+      - name: Build pinned TUN adapter engine
+        shell: pwsh
+        run: |
+          go install github.com/xjasonlyu/tun2socks/v2@v2.6.0
+          if ($LASTEXITCODE -ne 0) { throw 'TUN engine build failed' }
+          Copy-Item "$(go env GOPATH)/bin/tun2socks.exe" dist/namedP/
+          Invoke-WebRequest https://www.wintun.net/builds/wintun-0.14.1.zip -OutFile wintun.zip
+          Expand-Archive wintun.zip -DestinationPath wintun-package
+          $dll = 'wintun-package/wintun/bin/amd64/wintun.dll'
+          $signature = Get-AuthenticodeSignature $dll
+          if ($signature.Status -ne 'Valid' -or $signature.SignerCertificate.Subject -notmatch 'WireGuard') { throw 'Wintun signature validation failed' }
+          Copy-Item $dll dist/namedP/
+          Copy-Item wintun-package/wintun/LICENSE.txt dist/namedP/WINTUN-LICENSE.txt
+          Invoke-WebRequest https://raw.githubusercontent.com/xjasonlyu/tun2socks/v2.6.0/LICENSE -OutFile dist/namedP/TUN2SOCKS-LICENSE.txt
+          Copy-Item LICENSE,THIRD_PARTY_NOTICES.md dist/namedP/
+          Copy-Item docs/NAMEDP.md dist/namedP/README.md
+          go version -m dist/namedP/tun2socks.exe | Out-File dist/namedP/TUN-DEPENDENCIES.txt
+      - name: Windows UI and routing script smoke tests
+        shell: pwsh
+        run: |
+          $errors = $null
+          [System.Management.Automation.Language.Parser]::ParseFile("$pwd/windows/namedP/vpn.ps1", [ref]$null, [ref]$errors) | Out-Null
+          if ($errors.Count) { throw ($errors | Out-String) }
+          dotnet run --project windows/namedP.Smoke -c Release
+          if ($LASTEXITCODE -ne 0) { throw 'UI smoke failed' }
+      - name: Package Windows client
+        shell: pwsh
+        run: |
+          $version = (Get-Content windows/namedP/VERSION -Raw).Trim()
+          $archive = "namedP-$version-windows-x64.zip"
+          Compress-Archive -Path dist/namedP/* -DestinationPath "dist/$archive"
+          $hash = (Get-FileHash "dist/$archive" -Algorithm SHA256).Hash.ToLower()
+          "$hash  $archive" | Out-File -Encoding ascii dist/SHA256SUMS
+      - uses: actions/upload-artifact@v7
+        with:
+          name: namedP-windows-x64
+          path: |
+            dist/namedP-*-windows-x64.zip
+            dist/SHA256SUMS
+      - uses: actions/upload-artifact@v7
+        with:
+          name: namedP-ui-previews
+          path: windows/namedP.Smoke/preview-*.png
+  release:
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main' && contains(github.event.head_commit.message, '[release-windows]')
+    needs: [linux, windows]
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/download-artifact@v8
+        with:
+          name: namedP-windows-x64
+          path: client-release
+      - name: Publish Windows client only
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          version=$(tr -d '\r\n' < windows/namedP/VERSION)
+          gh release create "namedp-v$version" "client-release/namedP-$version-windows-x64.zip" client-release/SHA256SUMS --target "$GITHUB_SHA" --prerelease --title "namedP $version · Windows client" --notes-file "docs/RELEASE-namedp-v$version.md"
+

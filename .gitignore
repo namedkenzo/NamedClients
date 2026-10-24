@@ -1,0 +1,16 @@
+/dist/
+/.compat-server/
+**/bin/
+**/obj/
+/windows/namedP.Smoke/preview-*.png
+/.gradle/
+**/build/
+local.properties
+*.jks
+*.keystore
+*.p12
+*.key
+*.pem
+signing.properties
+profiles.json
+.env
