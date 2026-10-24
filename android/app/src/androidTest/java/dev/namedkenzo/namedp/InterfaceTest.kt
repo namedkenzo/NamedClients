@@ -67,7 +67,13 @@ class InterfaceTest {
     val saved=ProfileStore(activity).read()
     assertTrue("Manual numeric save failed: "+view.findViewWithTag<TextView>("manual-error").text,saved.isNotEmpty())
     assertEquals("example.com",saved.single().name)
+   }
+   InstrumentationRegistry.getInstrumentation().waitForIdleSync()
+   scenario.onActivity { activity ->
     activity.window.decorView.findViewWithTag<View>("manual-profile").performClick()
+   }
+   InstrumentationRegistry.getInstrumentation().waitForIdleSync()
+   scenario.onActivity { activity ->
     activity.manualDialogForTest().window!!.decorView.findViewWithTag<Spinner>("manual-auth").setSelection(2)
    }
    InstrumentationRegistry.getInstrumentation().waitForIdleSync()

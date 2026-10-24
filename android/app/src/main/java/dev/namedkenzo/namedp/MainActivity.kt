@@ -223,7 +223,9 @@ class MainActivity:Activity() {
             val value=Profile.manualLink(server.text.toString(),port.text.toString(),if(connectionMode.selectedItemPosition==1)"proxy"else"vpn",methods[auth.selectedItemPosition.coerceIn(methods.indices)],secret.text.toString())
             saveProfile(value,title);d.dismiss()
         }catch(e:Exception){error.text=inputError(e);if(e is ProfileInputException)fields[e.field]?.requestFocus()}}}
-        profileDialog=d;d.setOnDismissListener{profileDialog=null}
+        // Dismiss callbacks are posted. An old dialog must not clear a newer
+        // one opened immediately after saving (also exercised by UI tests).
+        profileDialog=d;d.setOnDismissListener{if(profileDialog===d)profileDialog=null}
         d.show();d.window?.setSoftInputMode(WindowManager.LayoutParams.SOFT_INPUT_ADJUST_RESIZE)
     }
     private fun toggle(){
