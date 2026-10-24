@@ -38,7 +38,7 @@ class TunnelService: VpnService() {
     private fun current(token:Int) = generation.get()==token
     private fun startTunnel(link:String,mode:String,token:Int) {
         try {
-            Profile.validate(link)
+            val normalizedLink=Profile.normalize(link)
             require(mode in setOf("vpn","proxy"))
             val nativeDir=applicationInfo.nativeLibraryDir
             val executable=File(nativeDir,"libnamedp.so")
@@ -48,7 +48,7 @@ class TunnelService: VpnService() {
             synchronized(lock) { if(!current(token))return; if(mode=="vpn") socket=LocalServerSocket(socketName) }
             val process=ProcessBuilder(executable.absolutePath).directory(filesDir).start()
             synchronized(lock) { if(!current(token)){process.destroy();return};engine=process }
-            val input=JSONObject().put("link",link).put("mode",mode).put("tun_socket",socketName).put("tun_binary",bridge.absolutePath)
+            val input=JSONObject().put("link",normalizedLink).put("mode",mode).put("tun_socket",socketName).put("tun_binary",bridge.absolutePath)
             process.outputStream.write((input.toString()+"\n").toByteArray(Charsets.UTF_8));process.outputStream.flush()
             val stderr=StringBuilder()
             pool.execute { process.errorStream.bufferedReader().useLines { lines -> lines.forEach { line -> synchronized(stderr){if(stderr.length<1500)stderr.append(line).append('\n')} } } }

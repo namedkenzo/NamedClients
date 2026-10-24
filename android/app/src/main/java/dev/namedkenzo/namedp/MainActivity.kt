@@ -29,6 +29,7 @@ class MainActivity:Activity() {
     private var lastState=""
     private var forceNight:Boolean?=null
     private var preview:TunnelSnapshot?=null
+    private var profileDialog:AlertDialog?=null
     private lateinit var root:LinearLayout
     private var traffic:TextView?=null
     private var elapsed:TextView?=null
@@ -122,8 +123,9 @@ class MainActivity:Activity() {
             addView(text(if(preview!=null)"demo.namedp.example" else profile?.host ?: tr("Paste a link exported by your panel","لینک خروجی پنل را وارد کنید"),12f,muted))
             setOnClickListener{page="profiles";render()}
         });gap(parent,12)
+        importButtons(parent);gap(parent,10)
         if(state.state=="error") {parent.addView(text(state.message,12f,Color.parseColor(if(night)"#F2AE9D" else "#A54832")));gap(parent,8)}
-        parent.addView(button(if(active())tr("Disconnect","قطع اتصال")else tr("Connect →","اتصال ←"),true){toggle()}.apply{isEnabled=preview==null && !locked})
+        parent.addView(button(if(active())tr("Disconnect","قطع اتصال")else tr("Connect →","اتصال ←"),true){toggle()}.apply{tag="connect";isEnabled=preview==null && !locked})
         gap(parent,13)
         val stats=row();traffic=text("↑ ${bytes(state.upload)}     ↓ ${bytes(state.download)}",12f,muted).apply {layoutParams=LinearLayout.LayoutParams(0,-2,1f)}
         elapsed=text("00:00",12f,muted).apply{layoutParams=LinearLayout.LayoutParams(-2,-2)};stats.addView(traffic);stats.addView(elapsed);parent.addView(stats)
@@ -132,7 +134,7 @@ class MainActivity:Activity() {
     private fun profilesPage(parent:LinearLayout){
         parent.addView(text(tr("Your connections","اتصال‌های شما"),24f,ink,true));gap(parent,7)
         parent.addView(text(tr("One link. Your own server. No shared accounts.","یک لینک؛ سرور خودتان و حساب‌های مستقل."),12f,muted));gap(parent,20)
-        parent.addView(button(tr("+ Add connection","+ افزودن اتصال"),true){editProfile()}.apply{isEnabled=!locked});gap(parent,16)
+        importButtons(parent);gap(parent,16)
         profiles.forEach { profile ->
             parent.addView(card().apply{
                 addView(text((if(selected()?.id==profile.id)"●  " else "○  ")+profile.name,16f,ink,true));gap(this,5);addView(text(profile.host,12f,muted));gap(this,5);addView(text(tr("Tap to select · hold to remove","برای انتخاب بزنید؛ برای حذف نگه دارید"),10f,muted))
@@ -140,7 +142,7 @@ class MainActivity:Activity() {
                 setOnLongClickListener{if(active())notice(tr("Disconnect before removing a profile","پیش از حذف پروفایل اتصال را قطع کنید"))else dialog().setTitle(tr("Remove connection?","اتصال حذف شود؟")).setMessage(profile.name).setNegativeButton(tr("Cancel","انصراف"),null).setPositiveButton(tr("Remove","حذف")){_,_->try{profiles.remove(profile);store.save(profiles);render()}catch(e:Exception){notice(e.message?:"Could not save")}}.show();true}
             });gap(parent,12)
         }
-        if(profiles.isEmpty())parent.addView(text(tr("Copy a complete pingtunnel:// link from Users → Config in your panel.","لینک کامل pingtunnel:// را از بخش Users ← Config در پنل کپی کنید."),13f,muted))
+        if(profiles.isEmpty())parent.addView(text(tr("Copy the Config link from your panel, tap Paste, then Connect. Or use + to enter the server and key manually.","لینک Config پنل را کپی کنید، Paste و سپس اتصال را بزنید؛ یا با + سرور و رمز را دستی وارد کنید."),13f,muted))
     }
     private fun settingsPage(parent:LinearLayout){
         parent.addView(text(tr("Make it yours","مطابق سلیقهٔ شما"),24f,ink,true));gap(parent,20)
@@ -156,21 +158,77 @@ class MainActivity:Activity() {
     private fun themePicker(){val values=arrayOf("system","light","dark");dialog().setTitle(tr("Appearance","ظاهر")).setSingleChoiceItems(arrayOf(tr("Follow system","مطابق سیستم"),tr("Light","روشن"),tr("Dark","تیره")),values.indexOf(prefs.getString("theme","system"))){d,i->prefs.edit().putString("theme",values[i]).apply();forceNight=null;d.dismiss();render()}.show()}
     private fun dialog()=AlertDialog.Builder(this,if(night)android.R.style.Theme_Material_Dialog_Alert else android.R.style.Theme_Material_Light_Dialog_Alert)
     private fun notice(message:String){dialog().setMessage(message).setPositiveButton("OK",null).show()}
+    private fun inputError(error:Exception)=if(error is ProfileInputException && fa)error.persian else if(error is ProfileInputException)error.message.orEmpty() else tr("Could not save the connection. Please try again.","ذخیرهٔ اتصال انجام نشد؛ دوباره تلاش کنید.")
+    private fun importButtons(parent:LinearLayout){
+        val controls=row()
+        controls.addView(button(tr("Paste","چسباندن")){pasteProfile()}.apply{tag="paste-profile";layoutParams=LinearLayout.LayoutParams(0,dp(48),1f);isEnabled=!locked && !active() && preview==null})
+        controls.addView(button("+"){editProfile()}.apply{tag="manual-profile";contentDescription=tr("Add connection manually","افزودن دستی اتصال");layoutParams=LinearLayout.LayoutParams(dp(52),dp(48)).apply{marginStart=dp(8)};textSize=24f;isEnabled=!locked && !active() && preview==null})
+        parent.addView(controls)
+    }
+    private fun saveProfile(value:String,name:String=""){
+        check(!locked && !active())
+        val normalized=Profile.normalize(value)
+        val p=profiles.find{it.link==normalized} ?: Profile(UUID.randomUUID().toString(),name.ifBlank{Profile("","",normalized).host},normalized)
+        val updated=profiles.toMutableList().apply{if(none{it.id==p.id})add(p)}
+        store.save(updated);profiles=updated
+        mode=p.mode;prefs.edit().putString("selected",p.id).putString("mode",mode).apply()
+        // Clear an old connection error only after a valid import was saved.
+        TunnelStatus.snapshot=TunnelSnapshot();page="home";render()
+    }
+    private fun pasteProfile(){
+        if(locked || active())return
+        try{
+            val clip=getSystemService(ClipboardManager::class.java).primaryClip
+            if(clip==null || clip.itemCount==0){notice(tr("Clipboard is empty. Copy the Config link from your panel first.","کلیپ‌بورد خالی است؛ ابتدا لینک Config پنل را کپی کنید."));return}
+            // Read the complete clipboard item directly. No single-line password
+            // editor, selection range or rendered/ellipsized text is involved.
+            val value=clip.getItemAt(0).text?.toString()
+            if(value.isNullOrBlank()){notice(tr("Clipboard has no text link. Copy the full Config link from your panel.","کلیپ‌بورد لینک متنی ندارد؛ لینک کامل Config پنل را کپی کنید."));return}
+            saveProfile(value)
+            Toast.makeText(this,tr("Imported. Tap Connect when ready.","وارد شد؛ برای اتصال دکمهٔ اتصال را بزنید."),Toast.LENGTH_SHORT).show()
+        }catch(e:Exception){notice(inputError(e))}
+    }
     private fun editProfile(){
+        if(locked || active())return
+        val formContext=ContextThemeWrapper(this,if(night)android.R.style.Theme_Material else android.R.style.Theme_Material_Light)
         val box=LinearLayout(this).apply{orientation=LinearLayout.VERTICAL;setPadding(dp(20),dp(8),dp(20),0)}
-        val name=EditText(this).apply{hint=tr("Connection name","نام اتصال");isSingleLine=true;setTextColor(ink);setHintTextColor(muted)}
-        val link=EditText(this).apply{hint="pingtunnel://…";inputType=InputType.TYPE_CLASS_TEXT or InputType.TYPE_TEXT_VARIATION_PASSWORD;isSingleLine=true;setTextColor(ink);setHintTextColor(muted);importantForAutofill=View.IMPORTANT_FOR_AUTOFILL_NO_EXCLUDE_DESCENDANTS}
-        box.addView(name);box.addView(link);box.addView(button(tr("Paste link","چسباندن لینک")){val clip=getSystemService(ClipboardManager::class.java).primaryClip;if(clip!=null&&clip.itemCount>0)link.setText(clip.getItemAt(0).coerceToText(this).toString().trim())})
-        val d=dialog().setTitle(tr("New connection","اتصال جدید")).setView(box).setNegativeButton(tr("Cancel","انصراف"),null).setPositiveButton(tr("Save","ذخیره"),null).create()
+        val fields=mutableMapOf<String,EditText>()
+        fun field(id:String,label:String,type:Int=InputType.TYPE_CLASS_TEXT):EditText {
+            box.addView(text(label,12f,muted));gap(box,3)
+            return EditText(this).apply{tag="manual-$id";inputType=type;isSingleLine=true;setTextColor(ink);setHintTextColor(muted);importantForAutofill=View.IMPORTANT_FOR_AUTOFILL_NO_EXCLUDE_DESCENDANTS;box.addView(this);gap(box,10);fields[id]=this}
+        }
+        val name=field("name",tr("Name (optional)","نام (اختیاری)"))
+        val server=field("server",tr("Server IPv4 or domain","آی‌پی IPv4 یا دامنهٔ سرور"),InputType.TYPE_CLASS_TEXT or InputType.TYPE_TEXT_VARIATION_URI).apply{hint="vpn.example.com";textDirection=View.TEXT_DIRECTION_LTR}
+        box.addView(text(tr("Authentication","احراز هویت"),12f,muted))
+        val methods=listOf("none","aes128","aes256","chacha20")
+        val auth=Spinner(formContext).apply{tag="manual-auth";adapter=ArrayAdapter(formContext,android.R.layout.simple_spinner_dropdown_item,listOf(tr("Numeric key · no encryption","رمز عددی · بدون رمزنگاری"),"AES-128","AES-256","ChaCha20"));box.addView(this,LinearLayout.LayoutParams(-1,dp(48)))}
+        val secret=field("credential",tr("Key","رمز"),InputType.TYPE_CLASS_TEXT or InputType.TYPE_TEXT_VARIATION_PASSWORD).apply{textDirection=View.TEXT_DIRECTION_LTR}
+        auth.onItemSelectedListener=object:AdapterView.OnItemSelectedListener {
+            private var previous=0
+            override fun onNothingSelected(parent:AdapterView<*>?){}
+            override fun onItemSelected(parent:AdapterView<*>?,view:View?,position:Int,id:Long){
+                if(position!=previous)secret.setText("");previous=position
+                secret.hint=if(position==0)tr("Numeric key from panel","رمز عددی پنل")else tr("Base64 encryption key from panel","کلید Base64 رمزنگاری از پنل")
+            }
+        }
+        val port=field("port",tr("Local SOCKS port","پورت محلی SOCKS"),InputType.TYPE_CLASS_NUMBER).apply{setText("1080");textDirection=View.TEXT_DIRECTION_LTR}
+        box.addView(text(tr("Connection mode","حالت اتصال"),12f,muted))
+        val connectionMode=Spinner(formContext).apply{tag="manual-mode";adapter=ArrayAdapter(formContext,android.R.layout.simple_spinner_dropdown_item,listOf(tr("Device VPN","VPN دستگاه"),tr("Local proxy","پروکسی محلی")));setSelection(if(mode=="proxy")1 else 0);box.addView(this,LinearLayout.LayoutParams(-1,dp(48)))}
+        val error=text("",12f,Color.parseColor(if(night)"#F2AE9D" else "#A54832")).apply{tag="manual-error";accessibilityLiveRegion=View.ACCESSIBILITY_LIVE_REGION_POLITE};box.addView(error)
+        val scroll=ScrollView(this).apply{addView(box)}
+        val d=dialog().setTitle(tr("Manual connection","اتصال دستی")).setView(scroll).setNegativeButton(tr("Cancel","انصراف"),null).setPositiveButton(tr("Save","ذخیره"),null).create()
         d.setOnShowListener{d.getButton(AlertDialog.BUTTON_POSITIVE).setOnClickListener{try{
-            val value=link.text.toString().trim();Profile.validate(value);require(name.text.toString().trim().length in 1..60){tr("Enter a name, up to 60 characters","نامی بین ۱ تا ۶۰ کاراکتر وارد کنید")}
-            val p=Profile(UUID.randomUUID().toString(),name.text.toString().trim(),value);val updated=profiles.toMutableList().apply{add(p)};store.save(updated);profiles=updated
-            prefs.edit().putString("selected",p.id).apply();d.dismiss();page="home";render()
-        }catch(e:Exception){link.error=e.message ?: "Invalid profile"}}};d.show()
+            val title=name.text.toString().trim()
+            if(title.length>60)throw ProfileInputException("name","Name must be at most 60 characters.","نام باید حداکثر ۶۰ کاراکتر باشد.")
+            val value=Profile.manualLink(server.text.toString(),port.text.toString(),if(connectionMode.selectedItemPosition==0)"vpn"else"proxy",methods[auth.selectedItemPosition],secret.text.toString())
+            saveProfile(value,title);d.dismiss()
+        }catch(e:Exception){error.text=inputError(e);if(e is ProfileInputException)fields[e.field]?.requestFocus()}}}
+        profileDialog=d;d.setOnDismissListener{profileDialog=null}
+        d.show();d.window?.setSoftInputMode(WindowManager.LayoutParams.SOFT_INPUT_ADJUST_RESIZE)
     }
     private fun toggle(){
         if(active()){startService(Intent(this,TunnelService::class.java).setAction("stop"));return}
-        if(selected()==null){page="profiles";render();editProfile();return}
+        if(selected()==null){notice(tr("Tap Paste to import your copied Config link, or + to enter it manually.","با Paste لینک Config کپی‌شده را وارد کنید یا با + دستی اضافه کنید."));return}
         if(Build.VERSION.SDK_INT>=33 && checkSelfPermission(Manifest.permission.POST_NOTIFICATIONS)!=android.content.pm.PackageManager.PERMISSION_GRANTED)requestPermissions(arrayOf(Manifest.permission.POST_NOTIFICATIONS),42)
         if(mode=="vpn"){val permission=VpnService.prepare(this);if(permission!=null){startActivityForResult(permission,100);return}}
         startTunnel()
@@ -178,5 +236,6 @@ class MainActivity:Activity() {
     private fun startTunnel(){val profile=selected()?:return;startForegroundService(Intent(this,TunnelService::class.java).setAction("start").putExtra("link",profile.link).putExtra("mode",mode))}
     @Deprecated("Activity result compatibility") override fun onActivityResult(requestCode:Int,resultCode:Int,data:Intent?){super.onActivityResult(requestCode,resultCode,data);if(requestCode==100 && resultCode==RESULT_OK)startTunnel()}
     fun previewForTest(dark:Boolean,state:String){check(BuildConfig.DEBUG);forceNight=dark;preview=TunnelSnapshot(state,"UI preview",153600,2841600,if(state=="connected")SystemClock.elapsedRealtime()-65000 else 0);page="home";render()}
+    fun manualDialogForTest():AlertDialog {check(BuildConfig.DEBUG);return checkNotNull(profileDialog)}
     private fun bytes(n:Long)=when{n<1024->"$n B";n<1048576->String.format(Locale.US,"%.1f KiB",n/1024.0);else->String.format(Locale.US,"%.1f MiB",n/1048576.0)}
 }

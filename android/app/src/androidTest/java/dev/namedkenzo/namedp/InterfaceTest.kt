@@ -1,6 +1,12 @@
 package dev.namedkenzo.namedp
 
 import android.content.Intent
+import android.content.ClipData
+import android.content.ClipboardManager
+import android.app.AlertDialog
+import android.view.View
+import android.widget.EditText
+import android.widget.Spinner
 import android.graphics.Bitmap
 import android.graphics.Canvas
 import android.content.ContentValues
@@ -15,6 +21,62 @@ import java.io.File
 
 @RunWith(AndroidJUnit4::class)
 class InterfaceTest {
+ @Test fun pasteImportsWholeLinkWithoutEditorOrRequiredName() {
+  val context=InstrumentationRegistry.getInstrumentation().targetContext
+  context.getSharedPreferences("namedP-private",0).edit().clear().commit()
+  context.getSharedPreferences("namedp-ui",0).edit().clear().commit()
+  ActivityScenario.launch<MainActivity>(Intent(context,MainActivity::class.java)).use { scenario ->
+   scenario.onActivity { activity ->
+    val clipboard=activity.getSystemService(ClipboardManager::class.java)
+    clipboard.setPrimaryClip(ClipData.newPlainText("Test profile","pingtunnel://example.com?mode=proxy&key=123456&lport=1081"))
+    activity.window.decorView.findViewWithTag<View>("paste-profile").performClick()
+    val saved=ProfileStore(activity).read().single()
+    assertEquals("example.com",saved.name);assertEquals("proxy",saved.mode);assertEquals(1081,saved.port)
+    assertEquals("idle",TunnelStatus.snapshot.state) // Import never fakes a connection.
+    activity.window.decorView.findViewWithTag<View>("paste-profile").performClick()
+    assertEquals(1,ProfileStore(activity).read().size)
+    val key=java.util.Base64.getEncoder().encodeToString(ByteArray(32){0xfb.toByte()})
+    clipboard.setPrimaryClip(ClipData.newPlainText("Test encrypted profile","pingtunnel://example.com?mode=vpn&encrypt_mode=chacha20&encrypt-key=$key"))
+    activity.window.decorView.findViewWithTag<View>("paste-profile").performClick()
+    val encrypted=ProfileStore(activity).read().last().link
+    assertTrue(encrypted.contains("&encrypt=chacha20&encrypt_key="));assertTrue(encrypted.contains("%2B"));assertFalse(encrypted.contains("&key="))
+    clipboard.clearPrimaryClip()
+   }
+   scenario.recreate()
+   scenario.onActivity {assertEquals(2,ProfileStore(it).read().size)}
+  }
+  context.getSharedPreferences("namedP-private",0).edit().clear().commit()
+  context.getSharedPreferences("namedp-ui",0).edit().clear().commit()
+ }
+ @Test fun plusOffersSeparateServerAndCredentialFields() {
+  val context=InstrumentationRegistry.getInstrumentation().targetContext
+  context.getSharedPreferences("namedP-private",0).edit().clear().commit()
+  context.getSharedPreferences("namedp-ui",0).edit().clear().commit()
+  ActivityScenario.launch<MainActivity>(Intent(context,MainActivity::class.java)).use { scenario ->
+   scenario.onActivity { activity ->
+    activity.window.decorView.findViewWithTag<View>("manual-profile").performClick()
+    val dialog=activity.manualDialogForTest()
+    val view=dialog.window!!.decorView
+    view.findViewWithTag<EditText>("manual-server").setText("example.com")
+    view.findViewWithTag<EditText>("manual-credential").setText("123456")
+    dialog.getButton(AlertDialog.BUTTON_POSITIVE).performClick()
+    assertEquals("example.com",ProfileStore(activity).read().single().name)
+    activity.window.decorView.findViewWithTag<View>("manual-profile").performClick()
+    activity.manualDialogForTest().window!!.decorView.findViewWithTag<Spinner>("manual-auth").setSelection(2)
+   }
+   InstrumentationRegistry.getInstrumentation().waitForIdleSync()
+   scenario.onActivity { activity ->
+    val dialog=activity.manualDialogForTest();val view=dialog.window!!.decorView
+    view.findViewWithTag<EditText>("manual-server").setText("example.com")
+    view.findViewWithTag<EditText>("manual-credential").setText(java.util.Base64.getEncoder().encodeToString(ByteArray(32){0xfb.toByte()}))
+    dialog.getButton(AlertDialog.BUTTON_POSITIVE).performClick()
+    val encrypted=ProfileStore(activity).read().last().link
+    assertTrue(encrypted.contains("&encrypt=aes256&encrypt_key="));assertFalse(encrypted.contains("&key="))
+   }
+  }
+  context.getSharedPreferences("namedP-private",0).edit().clear().commit()
+  context.getSharedPreferences("namedp-ui",0).edit().clear().commit()
+ }
  @Test fun nativeEngineOpensRootlessPingSocket() {
   val context=InstrumentationRegistry.getInstrumentation().targetContext
   val process=ProcessBuilder(File(context.applicationInfo.nativeLibraryDir,"libnamedp.so").absolutePath,"--self-test-socket").redirectErrorStream(true).start()

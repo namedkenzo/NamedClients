@@ -71,10 +71,11 @@ jobs:
             node scripts/check_png.cjs dist/android/previews
       - name: Package development APK
         run: |
+          VERSION=$(node -e 'process.stdout.write(require("fs").readFileSync("android/app/build.gradle.kts","utf8").match(/versionName = "([^"]+)"/)[1])')
           mkdir -p dist/android
-          cp android/app/build/outputs/apk/debug/app-debug.apk dist/android/namedP-android-0.1.0-alpha-debug.apk
+          cp android/app/build/outputs/apk/debug/app-debug.apk "dist/android/namedP-android-$VERSION-debug.apk"
           cp android/app/build/outputs/apk/androidTest/debug/app-debug-androidTest.apk dist/android/namedP-android-ui-tests.apk
-          (cd dist/android && sha256sum namedP-android-0.1.0-alpha-debug.apk > SHA256SUMS)
+          (cd dist/android && sha256sum "namedP-android-$VERSION-debug.apk" > SHA256SUMS)
       - name: Record credential-free interface previews
         run: |
           echo "NAMEDP_LIGHT_PREVIEW=$(base64 -w0 dist/android/previews/light-idle.png)"
@@ -83,7 +84,7 @@ jobs:
         with:
           name: namedP-android-development
           path: |
-            dist/android/namedP-android-0.1.0-alpha-debug.apk
+            dist/android/namedP-android-*-debug.apk
             dist/android/SHA256SUMS
       - uses: actions/upload-artifact@v7
         with:
@@ -115,9 +116,11 @@ jobs:
       - env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          if gh release view android-v0.1.0-alpha >/dev/null 2>&1; then
+          VERSION=$(node -e 'process.stdout.write(require("fs").readFileSync("android/app/build.gradle.kts","utf8").match(/versionName = "([^"]+)"/)[1])')
+          TAG="android-v$VERSION"
+          if gh release view "$TAG" >/dev/null 2>&1; then
             # Preserve the original tagged APK/checksum; repair only its previews.
-            gh release upload android-v0.1.0-alpha android-previews/*.png --clobber
+            gh release upload "$TAG" android-previews/*.png --clobber
           else
-            gh release create android-v0.1.0-alpha android-release/*.apk android-release/SHA256SUMS android-previews/*.png --target "$GITHUB_SHA" --prerelease --title 'namedP Android 0.1.0-alpha · Development APK' --notes-file docs/RELEASE-android-v0.1.0-alpha.md
+            gh release create "$TAG" android-release/*.apk android-release/SHA256SUMS android-previews/*.png --target "$GITHUB_SHA" --prerelease --title "namedP Android $VERSION · Development APK" --notes-file "docs/RELEASE-$TAG.md"
           fi

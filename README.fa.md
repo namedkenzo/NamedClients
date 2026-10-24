@@ -7,7 +7,7 @@
 | پلتفرم | وضعیت | محل کد |
 | --- | --- | --- |
 | ویندوز ۱۰/۱۱، x64 | namedP نسخهٔ `0.1.0-alpha` | [`windows/namedP`](windows/namedP) |
-| اندروید ۸ به بالا، arm64 | APK آزمایشی `0.1.0-alpha` | [`android`](android) · [دانلود](https://github.com/namedkenzo/NamedClients/releases/tag/android-v0.1.0-alpha) |
+| اندروید ۸ به بالا، arm64 | APK آزمایشی `0.1.1-alpha` | [`android`](android) · [دانلود](https://github.com/namedkenzo/NamedClients/releases/tag/android-v0.1.1-alpha) |
 
 ## ویندوز
 
@@ -25,9 +25,11 @@
 
 ## اندروید
 
-نسخهٔ اولیهٔ اندروید با رابط تازه، Home/Connections/Settings، متن‌های فارسی/انگلیسی، تم خودکار سیستم و داچهوند متحرک ساخته شده است. APK امضای توسعه دارد و نسخهٔ تولیدی یا Play Store نیست. تست رابط و اجرای هسته بدون روت روی شبیه‌ساز پاس شده‌اند؛ اتصال واقعی گوشی به VPS، سرعت و نشت شبکه هنوز به آزمون نیاز دارند. [راهنمای اندروید](android/README.md) · [دانلود APK آزمایشی](https://github.com/namedkenzo/NamedClients/releases/tag/android-v0.1.0-alpha).
+لینک Config پنل را کپی کنید ← **Paste** ← **اتصال**. دکمهٔ **+** برای ورود دستی سرور و رمز عددی یا رمزنگاری است؛ نام اختیاری است.
 
-[تصویر روشن](https://github.com/namedkenzo/NamedClients/releases/download/android-v0.1.0-alpha/light-idle.png) · [تصویر تیره](https://github.com/namedkenzo/NamedClients/releases/download/android-v0.1.0-alpha/dark-idle.png). ظاهر و امکانات ویندوز در این مرحله تغییر نکرده‌اند.
+نسخهٔ اولیهٔ اندروید با رابط تازه، Home/Connections/Settings، متن‌های فارسی/انگلیسی، تم خودکار سیستم و داچهوند متحرک ساخته شده است. APK امضای توسعه دارد و نسخهٔ تولیدی یا Play Store نیست. تست رابط و اجرای هسته بدون روت روی شبیه‌ساز پاس شده‌اند؛ اتصال واقعی گوشی به VPS، سرعت و نشت شبکه هنوز به آزمون نیاز دارند. [راهنمای اندروید](android/README.md) · [دانلود APK آزمایشی](https://github.com/namedkenzo/NamedClients/releases/tag/android-v0.1.1-alpha).
+
+[تصویر روشن](https://github.com/namedkenzo/NamedClients/releases/download/android-v0.1.1-alpha/light-idle.png) · [تصویر تیره](https://github.com/namedkenzo/NamedClients/releases/download/android-v0.1.1-alpha/dark-idle.png). ظاهر و امکانات ویندوز در این مرحله تغییر نکرده‌اند.
 
 ## کلاینت‌های دیگر PingTunnel
 
