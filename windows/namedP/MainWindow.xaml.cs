@@ -208,16 +208,20 @@ public partial class MainWindow : Window
             await process.WaitForExitAsync(cancellation.Token);
             if(process.ExitCode!=0)throw new IOException("Relay test failed. Check the profile, outbound and HTTPS reachability.");
             using var doc=JsonDocument.Parse(await stdout);var result=doc.RootElement;
-            long ms=result.GetProperty("latency_ms").GetInt64();
-            if(result.GetProperty("event").GetString()!="relay_delay"||result.GetProperty("url").GetString()!="https://www.gstatic.com/generate_204"||result.GetProperty("status").GetInt32()!=204||ms<1||ms>15000)throw new IOException("Invalid relay test response.");
+            long ms=ReadRelayDelay(result);
             if(testedLink==Link.Password)Delay.Text=$"Relay delay: {ms} ms · HTTPS 204";
         }catch(OperationCanceledException){Delay.Text="Relay test cancelled or timed out.";}
         catch(Exception){if(testedLink==Link.Password)Delay.Text="Relay test failed; the VPN session is unchanged.";}
         finally{
             try{if(process!=null&&!process.HasExited)process.Kill(true);}catch(InvalidOperationException){}
             process?.Dispose();if(testEngine==process)testEngine=null;testSession=null;
-            testing=false;TestButton.Content="Test delay";TestButton.IsEnabled=!connecting&&!closing&&vpn==null||connected;
+            testing=false;TestButton.Content="Test delay";TestButton.IsEnabled=!connecting&&!closing&&(vpn==null||connected);
         }
+    }
+    internal static long ReadRelayDelay(JsonElement result){
+        long ms=result.GetProperty("latency_ms").GetInt64();
+        if(result.GetProperty("event").GetString()!="relay_delay"||result.GetProperty("url").GetString()!="https://www.gstatic.com/generate_204"||result.GetProperty("status").GetInt32()!=204||ms<1||ms>15000)throw new IOException("Invalid relay test response.");
+        return ms;
     }
 }
 

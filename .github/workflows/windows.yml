@@ -33,7 +33,7 @@ jobs:
       - uses: actions/setup-dotnet@v5
         with:
           dotnet-version: '8.0.x'
-      - run: go test -race ./internal/client ./internal/reliable ./internal/wire
+      - run: go test -race ./internal/client ./internal/reliable ./internal/wire ./internal/androidrelay
       - name: Windows raw ICMPv6 loopback
         shell: pwsh
         run: |
