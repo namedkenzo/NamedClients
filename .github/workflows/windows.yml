@@ -123,7 +123,7 @@ jobs:
       - uses: actions/checkout@v7
         with:
           repository: namedkenzo/NamedICMP
-          ref: ipv6-settings
+          ref: d7b3d81ef876556dcd9a04bb9dad821548e081ff
           path: .compat-ipv6
       - run: node scripts/check_ipv6_compat.cjs
 
