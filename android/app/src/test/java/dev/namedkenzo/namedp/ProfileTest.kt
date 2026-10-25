@@ -4,6 +4,17 @@ import org.junit.Test
 import java.util.Base64
 
 class ProfileTest {
+ @Test fun ipv6LiteralAndDomainRoundTripThroughEditorAndEngine() {
+  for(host in listOf("2001:db8::123","vpn.example.com")) {
+   val uri=Profile.manualLink(host,"1080","vpn","none","123",family="ipv6")
+   val p=Profile("id","v6",uri)
+   assertEquals(host,p.host);assertEquals("ipv6",p.parameters()["family"])
+   assertEquals(p.link,Profile.normalize(p.engineLink()))
+   if(host.contains(':'))assertTrue(uri.startsWith("pingtunnel://[2001:db8::123]?"))
+  }
+  failure("pingtunnel://[2001:db8::1]?key=123&family=ipv4")
+  failure("pingtunnel://192.0.2.1?key=123&family=ipv6")
+ }
  private fun failure(link:String):ProfileInputException {
   try { Profile.normalize(link);fail("Accepted invalid link") } catch(e:ProfileInputException) {return e}
   error("Unreachable")

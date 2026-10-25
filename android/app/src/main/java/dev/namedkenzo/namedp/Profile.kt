@@ -9,7 +9,7 @@ import java.util.Base64
 class ProfileInputException(val field: String, message: String, val persian: String): IllegalArgumentException(message)
 
 data class Profile(val id: String, val name: String, val link: String) {
-    val host: String get() = URI(link).host ?: ""
+    val host: String get() = URI(link).host?.removePrefix("[")?.removeSuffix("]") ?: ""
     val port: Int get() = query(link)["lport"]?.toInt() ?: 1080
     val mode: String get() = query(link)["mode"] ?: "vpn"
     val apps: List<String> get() = query(link)["apps"].orEmpty().split(',').filter{it.isNotEmpty()}
@@ -17,11 +17,12 @@ data class Profile(val id: String, val name: String, val link: String) {
     fun engineLink():String {
         val values=query(link).toMutableMap();values.remove("apps")
         if(mode=="proxy_per_app")values["mode"]="vpn"
-        return "pingtunnel://$host?"+values.entries.joinToString("&"){(key,value)->"${encode(key)}=${encode(value)}"}
+        return "pingtunnel://${authority(host)}?"+values.entries.joinToString("&"){(key,value)->"${encode(key)}=${encode(value)}"}
     }
     companion object {
         private fun invalid(field: String, en: String, fa: String): Nothing = throw ProfileInputException(field,en,fa)
         private fun encode(value: String) = URLEncoder.encode(value,"UTF-8")
+        private fun authority(host:String)=if(host.contains(':'))"[$host]"else host
         private val aliases = mapOf("local_port" to "lport", "vpn" to "mode",
             "encrypt_mode" to "encrypt", "encryptMode" to "encrypt", "encrypt-mode" to "encrypt", "enc" to "encrypt",
             "encrypt-key" to "encrypt_key", "encryptKey" to "encrypt_key")
@@ -51,10 +52,13 @@ data class Profile(val id: String, val name: String, val link: String) {
             if(link.length>8192) invalid("link","Connection link is too long.","لینک اتصال بیش از حد طولانی است.")
             val uri=try { URI(link) } catch(_: Exception) { invalid("link","Invalid link; use Paste to import the complete original link.","لینک نامعتبر است؛ با Paste لینک اصلی را کامل وارد کنید.") }
             if(!uri.scheme.equals("pingtunnel",ignoreCase=true) || uri.host.isNullOrBlank() || uri.port != -1 || uri.userInfo != null || uri.path.orEmpty() !in setOf("","/") || uri.fragment != null)
-                invalid("server","A complete pingtunnel:// link with an IPv4 server or domain is required.","لینک کامل pingtunnel:// با آی‌پی IPv4 یا دامنه لازم است.")
-            if(uri.host.contains(':')) invalid("server","IPv4 server or domain required.","آی‌پی IPv4 یا دامنه لازم است.")
+                invalid("server","A complete pingtunnel:// link with an IP address or domain is required.","لینک کامل pingtunnel:// با آی‌پی یا دامنه لازم است.")
+            val host=uri.host.removePrefix("[").removeSuffix("]")
+            if(host.contains('%'))invalid("server","Scoped addresses are not supported.","آدرس دارای شناسهٔ رابط پشتیبانی نمی‌شود.")
             val q = query(link)
-            if(q.keys.any { it !in setOf("key","encrypt","encrypt_key","lport","mode","apps") }) invalid("link","This link has unsupported parameters.","این لینک پارامتر پشتیبانی‌نشده دارد.")
+            if(q.keys.any { it !in setOf("key","encrypt","encrypt_key","lport","mode","apps","family") }) invalid("link","This link has unsupported parameters.","این لینک پارامتر پشتیبانی‌نشده دارد.")
+            val family=q["family"] ?: if(host.contains(':'))"ipv6"else"ipv4"
+            if(family !in listOf("ipv4","ipv6") || host.contains(':')&&family!="ipv6" || host.matches(Regex("[0-9]+(\\.[0-9]+){3}"))&&family!="ipv4")invalid("server","Address and selected IP family do not match.","آدرس با خانوادهٔ IP انتخاب‌شده مطابقت ندارد.")
             val port=digits(q["lport"] ?: "1080").toIntOrNull()
             if(port==null || port !in 1..65535) invalid("port","Local SOCKS port must be between 1 and 65535.","پورت محلی SOCKS باید بین ۱ و ۶۵۵۳۵ باشد.")
             val mode=when(q["mode"]?.lowercase() ?: "vpn") { "1","vpn" -> "vpn"; "0","proxy" -> "proxy"; "proxy_per_app","proxy-per-app","per_app","app","app_proxy" -> "proxy_per_app"; else -> invalid("mode","Choose VPN, Proxy or Proxy per app.","حالت VPN، پروکسی یا پروکسی برنامه‌ها را انتخاب کنید.") }
@@ -63,6 +67,7 @@ data class Profile(val id: String, val name: String, val link: String) {
                 else -> invalid("credential","Unsupported encryption method.","روش رمزنگاری پشتیبانی نمی‌شود.")
             }
             val params=linkedMapOf("lport" to port.toString(),"mode" to mode)
+            if(family=="ipv6")params["family"]="ipv6"
             val apps=q["apps"].orEmpty().split(',').map{it.trim()}.filter{it.isNotEmpty()}.distinct().sorted()
             if(apps.size>200 || apps.any{it.length>255 || !it.matches(Regex("[A-Za-z_][A-Za-z0-9_]*(\\.[A-Za-z_][A-Za-z0-9_]*)+"))})invalid("mode","Invalid application list.","فهرست برنامه‌ها نامعتبر است.")
             if(mode=="proxy_per_app" && apps.isNotEmpty())params["apps"]=apps.joinToString(",")
@@ -78,16 +83,17 @@ data class Profile(val id: String, val name: String, val link: String) {
                 if(bytes.size != if(encryption=="aes128")16 else 32) invalid("credential","Encryption key is missing or incomplete; copy the complete link.","کلید رمزنگاری ناقص یا خالی است؛ لینک را کامل کپی کنید.")
                 params["encrypt"]=encryption;params["encrypt_key"]=Base64.getEncoder().encodeToString(bytes)
             }
-            return "pingtunnel://${uri.host}?"+params.entries.joinToString("&"){(key,value)->"${encode(key)}=${encode(value)}"}
+            return "pingtunnel://${authority(host)}?"+params.entries.joinToString("&"){(key,value)->"${encode(key)}=${encode(value)}"}
         }
-        fun manualLink(server: String, port: String, mode: String, encryption: String, credential: String,apps:List<String> = emptyList()): String {
-            val host=server.trim()
-            if(host.isEmpty() || host.any{it.isWhitespace() || it in "/?#@:%\\"}) invalid("server","Enter only the server IPv4 address or domain, without a URL or port.","فقط آی‌پی IPv4 یا دامنهٔ سرور را بدون آدرس وب یا پورت وارد کنید.")
+        fun manualLink(server: String, port: String, mode: String, encryption: String, credential: String,apps:List<String> = emptyList(),family:String?=null): String {
+            val host=server.trim().removePrefix("[").removeSuffix("]")
+            if(host.isEmpty() || host.any{it.isWhitespace() || it in "/?#@%\\"}) invalid("server","Enter only the IPv4/IPv6 address or domain, without a URL or port.","فقط IPv4، IPv6 یا دامنه را بدون آدرس وب یا پورت وارد کنید.")
             val params=linkedMapOf("lport" to digits(port.trim().ifBlank{"1080"}),"mode" to mode)
+            if(family!=null)params["family"]=family
             if(mode=="proxy_per_app" && apps.isNotEmpty())params["apps"]=apps.joinToString(",")
             if(encryption=="none") params["key"]=digits(credential.trim())
             else { params["encrypt"]=encryption;params["encrypt_key"]=credential.trim() }
-            return normalize("pingtunnel://$host?"+params.entries.joinToString("&"){(key,value)->"${encode(key)}=${encode(value)}"})
+            return normalize("pingtunnel://${authority(host)}?"+params.entries.joinToString("&"){(key,value)->"${encode(key)}=${encode(value)}"})
         }
     }
 }

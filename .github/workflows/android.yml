@@ -1,7 +1,7 @@
 name: namedP Android
 on:
   push:
-    branches: [main]
+    branches: [main, ipv6-settings]
     paths:
       - 'android/**'
       - 'cmd/namedp-android-engine/**'

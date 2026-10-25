@@ -11,15 +11,18 @@ import (
  "namedp/internal/wire"
 )
 
-type Profile struct { Host string; Port int; Mode string; Credential wire.Credential }
+type Profile struct { Host string; Port int; Mode string; Credential wire.Credential;Family int }
 
 func ParseProfile(link string) (Profile,error) {
  p:=Profile{Port:1080,Mode:"vpn"}
  u,err:=url.Parse(strings.TrimSpace(link))
  if err!=nil || u.Scheme!="pingtunnel" || u.Hostname()=="" || u.Port()!="" || u.User!=nil || u.Path!="" || u.Fragment!="" {return p,errors.New("invalid pingtunnel link")}
- if net.ParseIP(u.Hostname())!=nil && net.ParseIP(u.Hostname()).To4()==nil {return p,errors.New("the tunnel server must support IPv4")}
+ if strings.Contains(u.Hostname(),"%") {return p,errors.New("scoped addresses are not supported")}
+ p.Family=4;if ip:=net.ParseIP(u.Hostname());ip!=nil&&ip.To4()==nil{p.Family=6}
  p.Host=u.Hostname();q,err:=url.ParseQuery(u.RawQuery);if err!=nil{return p,errors.New("invalid link encoding")}
- for k,v:=range q {if len(v)!=1{return p,errors.New("duplicate link parameter")};switch k {case "lport","mode","key","encrypt","encrypt_key":default:return p,errors.New("unsupported link parameter: "+k)}}
+ for k,v:=range q {if len(v)!=1{return p,errors.New("duplicate link parameter")};switch k {case "lport","mode","key","encrypt","encrypt_key","family":default:return p,errors.New("unsupported link parameter: "+k)}}
+ if q.Has("family"){family:=q.Get("family");switch family{case "ipv4":p.Family=4;case "ipv6":p.Family=6;default:return p,errors.New("invalid IP family")}}
+ if ip:=net.ParseIP(p.Host);ip!=nil {if ip.IsUnspecified()||ip.IsMulticast()||ip.IsLinkLocalUnicast()||(ip.To4()!=nil)!=(p.Family==4){return p,errors.New("address does not match the selected IP family")}}
  if q.Has("lport") {p.Port,err=strconv.Atoi(q.Get("lport"));if err!=nil || p.Port<1 || p.Port>65535{return p,errors.New("invalid local port")}}
  if q.Has("mode"){p.Mode=q.Get("mode")};if p.Mode!="vpn" && p.Mode!="proxy"{return p,errors.New("invalid connection mode")}
  mode,err:=wire.NormalizeEncryption(q.Get("encrypt"));if err!=nil{return p,err};p.Credential.Mode=mode

@@ -234,6 +234,10 @@ class MainActivity:Activity() {
         }
         val name=field("name",tr("Name (optional)","نام (اختیاری)"),profile?.name.orEmpty())
         val server=field("server",tr("Host","سرور"),profile?.host.orEmpty(),InputType.TYPE_CLASS_TEXT or InputType.TYPE_TEXT_VARIATION_URI).apply{hint="vpn.example.com";textDirection=View.TEXT_DIRECTION_LTR}
+        box.addView(text(tr("Endpoint IP family","خانوادهٔ IP اتصال"),12f,muted))
+        val families=listOf("ipv4","ipv6")
+        val ipFamily=Spinner(formContext).apply{tag="manual-family";adapter=ArrayAdapter(formContext,android.R.layout.simple_spinner_dropdown_item,listOf("IPv4","IPv6"));setSelection(if(q["family"]=="ipv6" || profile?.host?.contains(':')==true)1 else 0);box.addView(this,LinearLayout.LayoutParams(-1,dp(48)))}
+        gap(box,12)
         box.addView(text(tr("Mode","حالت"),12f,muted))
         val modes=listOf("proxy","vpn","proxy_per_app")
         val connectionMode=Spinner(formContext).apply{
@@ -282,7 +286,7 @@ class MainActivity:Activity() {
         detailValues={
             val title=name.text.toString().trim()
             if(title.length>60)throw ProfileInputException("name","Name must be at most 60 characters.","نام باید حداکثر ۶۰ کاراکتر باشد.")
-            Profile.manualLink(server.text.toString(),port.text.toString(),modes[connectionMode.selectedItemPosition.coerceIn(modes.indices)],methods[auth.selectedItemPosition.coerceIn(methods.indices)],secret.text.toString(),chosen) to title
+            Profile.manualLink(server.text.toString(),port.text.toString(),modes[connectionMode.selectedItemPosition.coerceIn(modes.indices)],methods[auth.selectedItemPosition.coerceIn(methods.indices)],secret.text.toString(),chosen,families[ipFamily.selectedItemPosition.coerceIn(families.indices)]) to title
         }
         gap(parent,12)
         parent.addView(card().apply{

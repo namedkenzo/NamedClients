@@ -20,6 +20,7 @@ type packetConn interface {
  Close()error
 }
 type Tunnel struct {
+	family int
  conn packetConn
  peer *net.IPAddr
  security *wire.Security
@@ -35,11 +36,12 @@ type Tunnel struct {
 }
 func randomID() string {b:=make([]byte,16);if _,e:=rand.Read(b);e!=nil{panic(e)};return hex.EncodeToString(b)}
 func Open(ctx context.Context,p Profile) (*Tunnel,error) {
- ips,err:=net.DefaultResolver.LookupIP(ctx,"ip4",p.Host);if err!=nil || len(ips)==0{return nil,errors.New("cannot resolve server IPv4 address")}
- conn,err:=net.ListenIP("ip4:icmp",&net.IPAddr{IP:net.IPv4zero});if err!=nil{return nil,fmt.Errorf("raw ICMP socket: run namedP as Administrator: %w",err)}
+ ips,family,err:=resolveEndpoint(ctx,p);if err!=nil{return nil,err}
+ protocol,local:="ip4:icmp",net.IPv4zero;if family==6 {protocol,local="ip6:ipv6-icmp",net.IPv6unspecified}
+ conn,err:=net.ListenIP(protocol,&net.IPAddr{IP:local});if err!=nil{return nil,fmt.Errorf("raw ICMP socket: run namedP as Administrator: %w",err)}
  sec:=wire.NewSecurity();if err=sec.SetCredentials([]wire.Credential{p.Credential});err!=nil{conn.Close();return nil,err}
  b:=make([]byte,2);rand.Read(b)
- t:=&Tunnel{conn:conn,peer:&net.IPAddr{IP:ips[0]},security:sec,key:p.Credential.Key,id:binary.BigEndian.Uint16(b),flows:map[string]chan wire.Message{},probe:make(chan wire.Message,8),done:make(chan struct{})}
+ t:=&Tunnel{conn:conn,peer:&net.IPAddr{IP:ips[0]},security:sec,key:p.Credential.Key,id:binary.BigEndian.Uint16(b),flows:map[string]chan wire.Message{},probe:make(chan wire.Message,8),done:make(chan struct{}),family:family}
  conn.SetReadBuffer(4<<20);conn.SetWriteBuffer(4<<20)
  go t.read();go func(){select{case <-ctx.Done():t.Close();case <-t.done:}}()
  return t,nil
@@ -50,12 +52,14 @@ func (t *Tunnel) Close(){t.once.Do(func(){close(t.done);t.conn.Close()})}
 func (t *Tunnel) send(m wire.Message) error {
  m.Key=t.key;m.ReplyType=0;m.Timeout=60;m.Window=20000;m.ResendMS=200
  data,err:=t.security.Encode(m);if err!=nil{return err}
- _,err=t.conn.WriteToIP(wire.Echo(8,t.id,uint16(t.seq.Add(1)),data),t.peer);return err
+ sequence:=uint16(t.seq.Add(1));packet:=wire.Echo(8,t.id,sequence,data);if t.family==6{packet=wire.Echo6(128,t.id,sequence,data)}
+ _,err=t.conn.WriteToIP(packet,t.peer);return err
 }
 func(t *Tunnel) read(){
  defer t.Close();b:=make([]byte,65535)
  for {n,peer,err:=t.conn.ReadFromIP(b);if err!=nil{return};if !peer.IP.Equal(t.peer.IP){continue}
- typ,id,_,payload,err:=wire.DecodeEcho(b[:n]);if err!=nil || typ!=0 || id!=t.id{continue}
+ decode,reply:=wire.DecodeEcho,byte(0);if t.family==6{decode,reply=wire.DecodeEcho6,129}
+ typ,id,_,payload,err:=decode(b[:n]);if err!=nil || typ!=reply || id!=t.id{continue}
  m,_,err:=t.security.Decode(peer.String(),id,payload);if err!=nil || m.ReplyType!=-1{continue};m.Payload=append([]byte(nil),m.Payload...)
  if m.Kind==1{select{case t.probe<-m:default:};continue}
  t.mu.Lock();ch:=t.flows[m.Connection];t.mu.Unlock();if ch!=nil{select{case ch<-m:default:}}

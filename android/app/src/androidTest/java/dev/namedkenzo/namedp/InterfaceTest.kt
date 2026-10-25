@@ -140,6 +140,13 @@ class InterfaceTest {
   assertEquals(output,0,process.exitValue())
   assertTrue(output,output.contains("ping-socket-ready"))
  }
+ @Test fun nativeEngineOpensRootlessIPv6PingSocket() {
+  val context=InstrumentationRegistry.getInstrumentation().targetContext
+  val process=ProcessBuilder(File(context.applicationInfo.nativeLibraryDir,"libnamedp.so").absolutePath,"--self-test-socket6").redirectErrorStream(true).start()
+  assertTrue(process.waitFor(8,java.util.concurrent.TimeUnit.SECONDS))
+  val output=process.inputStream.bufferedReader().readText()
+  assertEquals(output,0,process.exitValue());assertTrue(output,output.contains("ping-socket-ready"))
+ }
  @Test fun rendersThemesAndConnectionStates() {
   val context=InstrumentationRegistry.getInstrumentation().targetContext
   ActivityScenario.launch<MainActivity>(Intent(context,MainActivity::class.java)).use { scenario ->

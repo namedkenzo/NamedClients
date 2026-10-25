@@ -11,7 +11,7 @@ import (
  "time"
  "namedp/internal/client"
 )
-const version = "0.1.0-alpha"
+const version = "0.2.0-alpha"
 
 func main(){if len(os.Args)==2 && os.Args[1]=="--version"{fmt.Println(version);return};if err:=run();err!=nil{fmt.Fprintln(os.Stderr,err);os.Exit(1)}}
 func run()error{

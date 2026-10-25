@@ -58,7 +58,7 @@ public partial class MainWindow : Window
     {
         VpnMode.BorderBrush = (Brush)FindResource(fullVpn ? "Accent" : "Line");
         ProxyMode.BorderBrush = (Brush)FindResource(fullVpn ? "Line" : "Accent");
-        Hint.Text = fullVpn ? "Route device TCP + UDP through your namedICMP server." : "Only apps using the local SOCKS5 proxy are tunneled.";
+        Hint.Text = fullVpn ? "Route device TCP + UDP through your namedICMP profile." : "Only apps using the local SOCKS5 proxy are tunneled.";
     }
     void PasteLink(object sender, RoutedEventArgs e)
     {
@@ -114,7 +114,7 @@ public partial class MainWindow : Window
             await engine.StandardInput.FlushAsync();
             JsonElement info = await ready.Task.WaitAsync(TimeSpan.FromSeconds(25), ct);
             string ip = info.GetProperty("server_ip").GetString()!;
-            if (!IPAddress.TryParse(ip, out var address) || address.AddressFamily != System.Net.Sockets.AddressFamily.InterNetwork) throw new IOException("Invalid tunnel server address.");
+            if (!IPAddress.TryParse(ip, out var address) || (address.AddressFamily != System.Net.Sockets.AddressFamily.InterNetwork && address.AddressFamily != System.Net.Sockets.AddressFamily.InterNetworkV6)) throw new IOException("Invalid tunnel endpoint address.");
             int port = info.GetProperty("port").GetInt32();
             if (fullVpn)
             {
