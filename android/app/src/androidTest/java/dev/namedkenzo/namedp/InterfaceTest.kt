@@ -66,6 +66,10 @@ class InterfaceTest {
    InstrumentationRegistry.getInstrumentation().waitForIdleSync()
    scenario.onActivity { activity ->
     val view=activity.window.decorView
+    val credential=view.findViewWithTag<EditText>("manual-credential")
+    assertTrue("Keys must be masked before explicit reveal",credential.transformationMethod is android.text.method.PasswordTransformationMethod)
+    view.findViewWithTag<View>("reveal-key").performClick();assertNull(credential.transformationMethod)
+    view.findViewWithTag<View>("reveal-key").performClick();assertTrue(credential.transformationMethod is android.text.method.PasswordTransformationMethod)
     view.findViewWithTag<EditText>("manual-server").setText("example.com")
     view.findViewWithTag<EditText>("manual-credential").setText("123456")
     view.findViewWithTag<View>("manual-save").performClick()

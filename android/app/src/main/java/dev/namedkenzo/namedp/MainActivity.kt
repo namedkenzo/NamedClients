@@ -246,9 +246,11 @@ class MainActivity:Activity() {
             tag="manual-auth";adapter=ArrayAdapter(formContext,android.R.layout.simple_spinner_dropdown_item,listOf(tr("None · numeric key","خاموش · رمز عددی"),"AES-128","AES-256","ChaCha20"))
             setSelection(methods.indexOf(q["encrypt"] ?: "none").coerceAtLeast(0));box.addView(this,LinearLayout.LayoutParams(-1,dp(48)))
         };gap(box,12)
-        val secret=field("credential",tr("Key","کلید"),q["key"] ?: q["encrypt_key"].orEmpty(),InputType.TYPE_CLASS_TEXT or InputType.TYPE_TEXT_VARIATION_PASSWORD).apply{textDirection=View.TEXT_DIRECTION_LTR}
+        // setSingleLine replaces Android's transformation method. Apply the
+        // password transform last so the unchecked reveal box really masks it.
+        val secret=field("credential",tr("Key","کلید"),q["key"] ?: q["encrypt_key"].orEmpty(),InputType.TYPE_CLASS_TEXT or InputType.TYPE_TEXT_VARIATION_PASSWORD).apply{textDirection=View.TEXT_DIRECTION_LTR;transformationMethod=android.text.method.PasswordTransformationMethod.getInstance()}
         val reveal=CheckBox(formContext).apply{
-            text=tr("Show key","نمایش کلید");setTextColor(muted);textSize=12f
+            tag="reveal-key";text=tr("Show key","نمایش کلید");setTextColor(muted);textSize=12f
             setOnCheckedChangeListener{_,checked->secret.transformationMethod=if(checked)null else android.text.method.PasswordTransformationMethod.getInstance()}
         };box.addView(reveal);gap(box,8)
         auth.onItemSelectedListener=object:AdapterView.OnItemSelectedListener{

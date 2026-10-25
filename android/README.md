@@ -1,6 +1,6 @@
 # namedP for Android
 
-**0.1.2-alpha development** implementation. Android 8+ (API 26), arm64 phones and x86_64 emulators. The APK is debug-signed for testing, not a production/Play Store release.
+**0.1.3-alpha development** implementation. Android 8+ (API 26), arm64 phones and x86_64 emulators. The APK is debug-signed for testing, not a production/Play Store release.
 
 ## Experience
 
@@ -45,7 +45,7 @@ CI additionally runs emulator interface checks and captures both themes. Connect
 
 ## Signing and publication
 
-Both client sources may now be public at the owner's request. Android has its own `android-v0.1.2-alpha` development release; Windows stays unchanged. CI caches the development debug key for test builds; production distribution requires owner-controlled signing secrets. Never put signing keys or actual profiles in Git.
+Both client sources may now be public at the owner's request. Android has its own `android-v0.1.3-alpha` development release; Windows stays unchanged. CI caches the development debug key for test builds; production distribution requires owner-controlled signing secrets. Never put signing keys or actual profiles in Git.
 
 ## فارسی
 

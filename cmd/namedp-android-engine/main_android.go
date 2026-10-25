@@ -19,7 +19,7 @@ import (
 
 type config struct { Link string `json:"link"`; Mode string `json:"mode"`; TunSocket string `json:"tun_socket"`; TunBinary string `json:"tun_binary"`; ProbeOnly bool `json:"probe_only"` }
 func main(){
- if len(os.Args)==2 && os.Args[1]=="--version"{fmt.Println("0.1.2-alpha");return}
+ if len(os.Args)==2 && os.Args[1]=="--version"{fmt.Println("0.1.3-alpha");return}
  if len(os.Args)==2 && os.Args[1]=="--self-test-socket"{
   p,e:=client.ParseProfile("pingtunnel://127.0.0.1?key=123")
   if e==nil{var t *client.Tunnel;t,e=client.OpenAndroid(context.Background(),p);if e==nil{t.Close()}}

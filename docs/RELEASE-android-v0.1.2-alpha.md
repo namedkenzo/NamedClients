@@ -1,5 +1,7 @@
 # namedP Android 0.1.2-alpha — configuration-owned mode and connection details
 
+Superseded by **0.1.3-alpha**, which corrects key masking after Android's single-line transformation. Use the newer APK.
+
 - Removed the separate VPN/Proxy home toggles. The selected URI's `mode` now determines both Android permission/routing and native engine startup, including after app restart.
 - Tap a configuration to open Details: optional name, host, mode, numeric OR encryption key, local port, Save, Copy, authenticated ICMP Test and Connect/Disconnect.
 - Added Proxy per app through Android VpnService's application allowlist. Choose visible launcher apps; an empty selection or namedP itself is rejected at connection time, never silently converted to full-device routing.
