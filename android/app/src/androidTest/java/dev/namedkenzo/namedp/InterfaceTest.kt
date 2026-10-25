@@ -147,6 +147,32 @@ class InterfaceTest {
   val output=process.inputStream.bufferedReader().readText()
   assertEquals(output,0,process.exitValue());assertTrue(output,output.contains("ping-socket-ready"))
  }
+ @Test fun ipv6ProfileKeepsItsFamilyWhenEditedAndCopied() {
+  val context=InstrumentationRegistry.getInstrumentation().targetContext
+  context.getSharedPreferences("namedP-private",0).edit().clear().commit()
+  context.getSharedPreferences("namedp-ui",0).edit().clear().commit()
+  ActivityScenario.launch<MainActivity>(Intent(context,MainActivity::class.java)).use{scenario->
+   scenario.onActivity{activity->
+    activity.getSystemService(ClipboardManager::class.java).setPrimaryClip(ClipData.newPlainText("IPv6 example","pingtunnel://[2001:db8::25]?key=123456&mode=vpn&family=ipv6"))
+    activity.window.decorView.findViewWithTag<View>("paste-profile").performClick()
+    activity.window.decorView.findViewWithTag<View>("profile-card").performClick()
+   }
+   InstrumentationRegistry.getInstrumentation().waitForIdleSync()
+   scenario.onActivity{activity->
+    val view=activity.window.decorView
+    assertEquals(1,view.findViewWithTag<Spinner>("manual-family").selectedItemPosition)
+    assertEquals("2001:db8::25",view.findViewWithTag<EditText>("manual-server").text.toString())
+    view.findViewWithTag<View>("manual-save").performClick()
+    val saved=ProfileStore(activity).read().single();assertEquals("ipv6",saved.parameters()["family"])
+    assertTrue(saved.link.startsWith("pingtunnel://[2001:db8::25]?"))
+    view.findViewWithTag<View>("copy-profile").performClick()
+    assertEquals(saved.link,activity.getSystemService(ClipboardManager::class.java).primaryClip!!.getItemAt(0).text.toString())
+    activity.getSystemService(ClipboardManager::class.java).clearPrimaryClip()
+   }
+  }
+  context.getSharedPreferences("namedP-private",0).edit().clear().commit()
+  context.getSharedPreferences("namedp-ui",0).edit().clear().commit()
+ }
  @Test fun rendersThemesAndConnectionStates() {
   val context=InstrumentationRegistry.getInstrumentation().targetContext
   ActivityScenario.launch<MainActivity>(Intent(context,MainActivity::class.java)).use { scenario ->
