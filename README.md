@@ -15,7 +15,7 @@
 2. Run `namedP.exe` as Administrator and paste the complete `pingtunnel://` profile exported by the panel.
 3. Choose **Full-device VPN** or **Local SOCKS5 proxy**, then Connect.
 
-The app follows the system theme by default, supports dark/light overrides and includes an animated dachshund companion. Its independent Go transport carries separate TCP/UDP flows and accepts either a numeric key or an encryption-only profile. Full VPN is IPv4, temporarily blocks IPv6 and preserves more-specific LAN routes. See the [Windows guide](docs/NAMEDP.md).
+The app follows the system theme by default, supports dark/light overrides and includes an animated dachshund companion. Its independent Go transport carries separate TCP/UDP flows and accepts either a numeric key or an encryption-only profile. Full VPN carries IPv4 application traffic over an IPv4 or IPv6 endpoint; other Internet IPv6 is guarded while the exact endpoint and essential local ICMPv6 remain reachable. More-specific LAN routes remain available. See the [Windows guide](docs/NAMEDP.md).
 
 > Windows remains alpha. Build, protocol and UI checks do not replace real Windows/VPS network, throughput and cleanup acceptance testing.
 
