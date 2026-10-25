@@ -5,7 +5,7 @@ set -euo pipefail
 task_handoff_branch=signing-handoff
 task_request=".signing-handoff/request-${GITHUB_RUN_ID:?}.pem"
 task_payload=".signing-handoff/payload-${GITHUB_RUN_ID}.pem"
-openssl req -x509 -newkey rsa:3072 -noenc -quiet -keyout "$task_signing_dir/recipient-private.pem" -out "$task_signing_dir/recipient-public.pem" -subj "/CN=namedP-signing-run-$GITHUB_RUN_ID" -days 1
+openssl req -x509 -newkey rsa:3072 -noenc -keyout "$task_signing_dir/recipient-private.pem" -out "$task_signing_dir/recipient-public.pem" -subj "/CN=namedP-signing-run-$GITHUB_RUN_ID" -days 1
 if ! gh api "repos/$GITHUB_REPOSITORY/git/ref/heads/$task_handoff_branch" >/dev/null 2>&1; then
   gh api --method POST "repos/$GITHUB_REPOSITORY/git/refs" -f "ref=refs/heads/$task_handoff_branch" -f "sha=$GITHUB_SHA" >/dev/null
 fi
