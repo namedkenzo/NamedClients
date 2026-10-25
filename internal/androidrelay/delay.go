@@ -1,5 +1,5 @@
-// Package androidrelay measures Android profile reachability through its
-// authenticated tunnel. It is not linked into the Windows client.
+// Package androidrelay measures profile reachability through an authenticated
+// tunnel. Android and Windows share the same HTTPS measurement contract.
 package androidrelay
 
 import (

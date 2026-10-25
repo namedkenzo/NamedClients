@@ -50,11 +50,13 @@ $rules = @()
 $tun = $null
 $adapter = $null
 $routeReady = $false
+$stage = 'initialization'
 try {
  $exe = Join-Path $PSScriptRoot 'tun2socks.exe'
  if (!(Test-Path $exe) -or !(Test-Path (Join-Path $PSScriptRoot 'wintun.dll'))) { throw 'The release is incomplete: tun2socks.exe or wintun.dll is missing.' }
  $gateway = Get-NetRoute -AddressFamily $outerFamily -DestinationPrefix $outerDefault | Where-Object { $_.NextHop -ne $outerZero } | Sort-Object @{Expression={ $_.RouteMetric + (Get-NetIPInterface -InterfaceIndex $_.InterfaceIndex -AddressFamily $outerFamily).InterfaceMetric }} | Select-Object -First 1
  if (!$gateway) { throw "No physical $outerFamily default gateway is available." }
+ $stage = 'physical endpoint route'
  # Preserve the server route BEFORE adding /1 tunnel routes. Never delete
  # routes that predate this session; retain exact CIM objects for cleanup.
  $existing = @(Get-NetRoute -DestinationPrefix $outerPrefix -ErrorAction SilentlyContinue)
@@ -62,28 +64,34 @@ try {
   $routes += New-NetRoute -DestinationPrefix $outerPrefix -InterfaceIndex $gateway.InterfaceIndex -NextHop $gateway.NextHop -RouteMetric 1 -PolicyStore ActiveStore
  } elseif (!($existing | Where-Object { $_.InterfaceIndex -eq $gateway.InterfaceIndex -and $_.NextHop -eq $gateway.NextHop })) { throw 'An existing server route conflicts with the physical gateway.' }
  $tun = Start-Process -FilePath $exe -ArgumentList @('-device',"tun://$sessionName",'-proxy',"socks5://127.0.0.1:$Port",'-loglevel','silent') -WindowStyle Hidden -PassThru
+ $stage = 'Wintun adapter'
  $until = [DateTime]::UtcNow.AddSeconds(15)
  do { Start-Sleep -Milliseconds 150; $tun.Refresh(); if ($tun.HasExited) { throw 'TUN engine stopped before creating an adapter.' }; $adapter = Get-NetAdapter -Name $sessionName -ErrorAction SilentlyContinue } until ($adapter -or [DateTime]::UtcNow -gt $until)
  if (!$adapter) { throw 'Wintun adapter was not created.' }
+ $stage = 'adapter address and DNS'
  $index = $adapter.ifIndex
  Set-NetIPInterface -InterfaceIndex $index -AddressFamily IPv4 -Dhcp Disabled -InterfaceMetric 1 -NlMtuBytes 1280
  New-NetIPAddress -InterfaceIndex $index -IPAddress '198.18.0.1' -PrefixLength 24 -AddressFamily IPv4 -PolicyStore ActiveStore | Out-Null
  Set-DnsClientServerAddress -InterfaceIndex $index -ServerAddresses @('1.1.1.1','1.0.0.1')
  # Preserve the one physical IPv6 tunnel endpoint when selected; block all
  # other IPv6 destinations, not the outer ICMPv6 connection itself.
- $blockedV6 = if ($outerV6) { @(NamedPIPv6Ranges $parsed $true) } else { @('::/0') }
+ $stage = 'IPv6 firewall guard'
+ # NetSecurity rejects ::/0 (confirmed against the real Windows provider).
+ $blockedV6 = if ($outerV6) { @(NamedPIPv6Ranges $parsed $true) } else { @('::/1','8000::/1') }
  $rules += New-NetFirewallRule -Name "$sessionName-v6" -DisplayName "$sessionName IPv6 guard" -Direction Outbound -Action Block -RemoteAddress $blockedV6 -Profile Any
  if ($outerV6) {
   foreach ($protocol in @('TCP','UDP')) {
    $rules += New-NetFirewallRule -Name "$sessionName-v6-local-$protocol" -DisplayName "$sessionName IPv6 link-local guard" -Direction Outbound -Action Block -RemoteAddress @('fe80::/10','ff02::/16') -Protocol $protocol -Profile Any
   }
  }
+ $stage = 'physical DNS guards'
  foreach ($physical in @(Get-NetAdapter | Where-Object { $_.ifIndex -ne $index -and $_.Status -eq 'Up' })) {
   foreach ($protocol in @('UDP','TCP')) {
    $rules += New-NetFirewallRule -Name "$sessionName-dns-$($physical.ifIndex)-$protocol" -DisplayName "$sessionName DNS guard" -Direction Outbound -Action Block -Protocol $protocol -RemotePort 53 -InterfaceAlias $physical.Name -Profile Any
   }
  }
  foreach ($prefix in @('0.0.0.0/1','128.0.0.0/1')) { $routes += New-NetRoute -InterfaceIndex $index -DestinationPrefix $prefix -NextHop '0.0.0.0' -RouteMetric 1 -PolicyStore ActiveStore }
+ $stage = 'route verification'
  Clear-DnsClientCache
  $routeReady = $true
  [Console]::Out.WriteLine('{"event":"ready"}')
@@ -96,7 +104,7 @@ try {
   if (!(Get-NetAdapter | Where-Object { $_.ifIndex -eq $gateway.InterfaceIndex -and $_.Status -eq 'Up' })) { throw 'Physical network changed. Reconnect namedP.' }
   Start-Sleep -Milliseconds 500
  }
-} catch { [Console]::Error.WriteLine($_.Exception.Message); exit 1 }
+} catch { [Console]::Error.WriteLine("VPN setup [$stage]: $($_.Exception.Message)"); exit 1 }
 finally {
  foreach ($route in $routes) { $route | Remove-NetRoute -Confirm:$false -ErrorAction SilentlyContinue }
  foreach ($rule in $rules) { $rule | Remove-NetFirewallRule -ErrorAction SilentlyContinue }

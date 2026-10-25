@@ -64,5 +64,3 @@ func OpenAndroid(ctx context.Context,p Profile)(*Tunnel,error){
  return t,nil
 }
 
-// Configure before serving flows. Only Android exposes this opt-in policy.
-func(t *Tunnel) EnableGamingMode(){t.udpQueueLimit=32;t.udpQueueAge=150000000}

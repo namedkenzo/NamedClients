@@ -76,6 +76,7 @@ jobs:
           if ($errors.Count) { throw ($errors | Out-String) }
           & ./scripts/test_windows_ipv6.ps1
           & ./scripts/test_windows_firewall.ps1
+          & ./scripts/test_windows_vpn.ps1
           dotnet run --project windows/namedP.Smoke -c Release
           if ($LASTEXITCODE -ne 0) { throw 'UI smoke failed' }
       - name: Package Windows client
@@ -86,11 +87,29 @@ jobs:
           Compress-Archive -Path dist/namedP/* -DestinationPath "dist/$archive"
           $hash = (Get-FileHash "dist/$archive" -Algorithm SHA256).Hash.ToLower()
           "$hash  $archive" | Out-File -Encoding ascii dist/SHA256SUMS
+      - name: Build installer and verify both packages
+        shell: pwsh
+        run: |
+          $version = (Get-Content windows/namedP/VERSION -Raw).Trim()
+          $iscc = 'C:/Program Files (x86)/Inno Setup 6/ISCC.exe'
+          if (!(Test-Path $iscc)) { throw 'Pinned runner Inno Setup 6 is unavailable' }
+          & $iscc "/DClientVersion=$version" windows/installer/namedP.iss
+          if ($LASTEXITCODE -ne 0) { throw 'Installer build failed' }
+          $setup = "namedP-$version-windows-x64-setup.exe"
+          $hash = (Get-FileHash "dist/$setup" -Algorithm SHA256).Hash.ToLower()
+          "$hash  $setup" | Out-File -Append -Encoding ascii dist/SHA256SUMS
+          $target = Join-Path $env:RUNNER_TEMP 'namedP setup path with spaces'
+          $process = Start-Process -FilePath "dist/$setup" -ArgumentList @('/VERYSILENT','/SUPPRESSMSGBOXES','/NORESTART',"/DIR=`"$target`"") -PassThru -Wait
+          if ($process.ExitCode -ne 0 -or !(Test-Path "$target/namedP.exe") -or !(Test-Path "$target/wintun.dll") -or !(Test-Path "$target/vpn.ps1")) { throw 'Installed files missing' }
+          if ((& "$target/namedp-engine.exe" --version).Trim() -ne $version) { throw 'Installed engine version mismatch' }
+          $uninstall = Start-Process -FilePath "$target/unins000.exe" -ArgumentList '/VERYSILENT','/SUPPRESSMSGBOXES','/NORESTART' -PassThru -Wait
+          if ($uninstall.ExitCode -ne 0 -or (Test-Path "$target/namedP.exe")) { throw 'Installer uninstall failed' }
       - uses: actions/upload-artifact@v7
         with:
           name: namedP-windows-x64
           path: |
             dist/namedP-*-windows-x64.zip
+            dist/namedP-*-windows-x64-setup.exe
             dist/SHA256SUMS
       - uses: actions/upload-artifact@v7
         with:
@@ -113,7 +132,7 @@ jobs:
           GH_TOKEN: ${{ github.token }}
         run: |
           version=$(tr -d '\r\n' < windows/namedP/VERSION)
-          gh release create "namedp-v$version" "client-release/namedP-$version-windows-x64.zip" client-release/SHA256SUMS --target "$GITHUB_SHA" --prerelease --title "namedP $version · Windows client" --notes-file "docs/RELEASE-namedp-v$version.md"
+          gh release create "namedp-v$version" "client-release/namedP-$version-windows-x64.zip" "client-release/namedP-$version-windows-x64-setup.exe" client-release/SHA256SUMS --target "$GITHUB_SHA" --prerelease --title "namedP $version · Windows client · Setup + Portable" --notes-file "docs/RELEASE-namedp-v$version.md"
   ipv6:
     runs-on: ubuntu-latest
     steps:

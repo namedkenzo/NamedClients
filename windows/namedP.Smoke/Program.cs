@@ -22,6 +22,14 @@ static class Program
    using var file = File.Create("windows/namedP.Smoke/preview-"+pair.Item2+".png"); png.Save(file);
   }
   var dog = (Dachshund)window.FindName("Dog");
+  if(window.FindName("VpnMode")!=null||window.FindName("ProxyMode")!=null)throw new Exception("Obsolete manual routing modes remain");
+  var link=(PasswordBox)window.FindName("Link");
+  link.Password="pingtunnel://example.com?key=123&mode=proxy";
+  if(!((TextBlock)window.FindName("ProfileMode")).Text.Contains("mode=proxy"))throw new Exception("Proxy URI mode lost");
+  link.Password="pingtunnel://example.com?key=123&mode=vpn";
+  if(!((TextBlock)window.FindName("ProfileMode")).Text.Contains("mode=vpn"))throw new Exception("VPN URI mode lost");
+  if(window.FindName("Gaming")==null||window.FindName("TestButton")==null)throw new Exception("Gaming/delay controls missing");
+  link.Password="";
   foreach (string state in new[]{"idle","connecting","connected"}) { dog.State=state; dog.InvalidateVisual(); window.UpdateLayout(); }
   Console.WriteLine("Window, system/dark/light themes and mascot rendered successfully.");
   return 0;

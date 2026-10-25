@@ -17,6 +17,9 @@ public partial class MainWindow : Window
     CancellationTokenSource? session;
     bool fullVpn = true, connecting, connected, stopping, closing;
     DateTime connectedAt;
+    Process? testEngine;
+    CancellationTokenSource? testSession;
+    bool testing;
     readonly DispatcherTimer ticker = new() { Interval = TimeSpan.FromSeconds(1) };
     readonly string settings = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "namedP", "theme.txt");
     public MainWindow()
@@ -25,6 +28,8 @@ public partial class MainWindow : Window
         var version = System.Reflection.CustomAttributeExtensions.GetCustomAttribute<System.Reflection.AssemblyInformationalVersionAttribute>(typeof(MainWindow).Assembly)?.InformationalVersion.Split('+')[0] ?? "development";
         ClientVersion.Text = "namedP · " + version;
         try { if (File.Exists(settings) && int.TryParse(File.ReadAllText(settings), out int index)) Theme.SelectedIndex = Math.Clamp(index, 0, 2); } catch (IOException) { }
+        try { Gaming.IsChecked = File.Exists(Path.ChangeExtension(settings,"gaming")) && File.ReadAllText(Path.ChangeExtension(settings,"gaming")).Trim()=="true"; } catch (IOException) { }
+        Link.PasswordChanged += (_,_) => { if(!connected&&!connecting) { Delay.Text="Relay delay: not tested"; UpdateModes(); } };
         ApplyTheme(); UpdateModes();
         SystemEvents.UserPreferenceChanged += SystemThemeChanged;
         ticker.Tick += (_, _) => { if (connected) Elapsed.Text = (DateTime.UtcNow - connectedAt).ToString(@"hh\:mm\:ss"); };
@@ -50,15 +55,31 @@ public partial class MainWindow : Window
             : new[] { "#F5F5F0", "#FFFFFF", "#1A302C", "#667A75", "#DBE4DD", "#4BC4A5" };
         string[] names = ["Bg", "Surface", "Text", "Muted", "Line", "Accent"];
         for (int i = 0; i < names.Length; i++) Application.Current.Resources[names[i]] = new SolidColorBrush((Color)ColorConverter.ConvertFromString(colors[i]));
-        if (VpnMode != null) UpdateModes();
+        if (ProfileMode != null) UpdateModes();
     }
-    void ChooseVpn(object sender, RoutedEventArgs e) { fullVpn = true; UpdateModes(); }
-    void ChooseProxy(object sender, RoutedEventArgs e) { fullVpn = false; UpdateModes(); }
+    void GamingChanged(object sender, RoutedEventArgs e)
+    {
+        if(!IsInitialized)return;
+        try{Directory.CreateDirectory(Path.GetDirectoryName(settings)!);File.WriteAllText(Path.ChangeExtension(settings,"gaming"),Gaming.IsChecked==true?"true":"false");}catch(IOException){}
+    }
+    internal static string ReadMode(string link)
+    {
+        if(!Uri.TryCreate(link.Trim(),UriKind.Absolute,out var uri)||uri.Scheme!="pingtunnel"||string.IsNullOrEmpty(uri.Host))throw new IOException("Paste a complete pingtunnel:// profile.");
+        string mode="vpn";bool found=false;
+        foreach(var field in uri.Query.TrimStart('?').Split('&',StringSplitOptions.RemoveEmptyEntries)){
+            var pair=field.Split('=',2);
+            if(Uri.UnescapeDataString(pair[0])!="mode")continue;
+            if(found)throw new IOException("Duplicate mode in configuration.");found=true;
+            mode=pair.Length==2?Uri.UnescapeDataString(pair[1]):"";
+        }
+        if(mode!="vpn"&&mode!="proxy")throw new IOException("Windows supports mode=vpn or mode=proxy; Android per-app profiles require exporting a Windows-compatible mode.");
+        return mode;
+    }
     void UpdateModes()
     {
-        VpnMode.BorderBrush = (Brush)FindResource(fullVpn ? "Accent" : "Line");
-        ProxyMode.BorderBrush = (Brush)FindResource(fullVpn ? "Line" : "Accent");
-        Hint.Text = fullVpn ? "Route device TCP + UDP through your namedICMP profile." : "Only apps using the local SOCKS5 proxy are tunneled.";
+        try { fullVpn=ReadMode(Link.Password)=="vpn";ProfileMode.Text=fullVpn?"mode=vpn · Full-device VPN":"mode=proxy · Local SOCKS5"; }
+        catch(IOException){ProfileMode.Text="Mode follows the configuration";}
+        Hint.Text = "The profile selects routing automatically. HTTPS relay delay is not raw ICMP or game ping.";
     }
     void PasteLink(object sender, RoutedEventArgs e)
     {
@@ -92,27 +113,30 @@ public partial class MainWindow : Window
                 if (detail.Length > 350) detail = detail[..350];
                 var error = new IOException(string.IsNullOrWhiteSpace(detail) ? "Connection process stopped." : detail.Trim());
                 ready.TrySetException(error);
-                if (connected) await Dispatcher.InvokeAsync(async () => { Error.Text = error.Message; await Disconnect(); });
+                if (!ct.IsCancellationRequested && connected && (process==engine||process==vpn)) await Dispatcher.InvokeAsync(async () => { Error.Text = error.Message; await Disconnect(); });
             }
         }
         catch (OperationCanceledException) { ready.TrySetCanceled(); }
-        catch (Exception ex) { ready.TrySetException(ex); if (connected) await Dispatcher.InvokeAsync(async () => { Error.Text = "Connection monitor stopped."; await Disconnect(); }); }
+        catch (Exception ex) { ready.TrySetException(ex); if (!ct.IsCancellationRequested && connected && (process==engine||process==vpn)) await Dispatcher.InvokeAsync(async () => { Error.Text = "Connection monitor stopped."; await Disconnect(); }); }
     }
     async void ToggleConnection(object sender, RoutedEventArgs e)
     {
         if (connected || connecting) { await Disconnect(); return; }
         if (string.IsNullOrWhiteSpace(Link.Password)) { Error.Text = "Paste the complete pingtunnel:// connection link."; return; }
-        Error.Text = ""; connecting = true; session = new(); var ct = session.Token;
+        if(vpn!=null){Error.Text="Wait for VPN cleanup before reconnecting.";return;}
+        try{fullVpn=ReadMode(Link.Password)=="vpn";}catch(IOException ex){Error.Text=ex.Message;return;}
+        CancelTest();Error.Text = ""; connecting = true; session = new(); var ct = session.Token;
         Dog.State = "connecting"; StateLabel.Text = "●  Checking your tunnel…"; ConnectButton.Content = "Cancel";
-        VpnMode.IsEnabled = ProxyMode.IsEnabled = Link.IsEnabled = false;
+        Gaming.IsEnabled = Link.IsEnabled = TestButton.IsEnabled = false;
         try
         {
             engine = Start("namedp-engine.exe");
             var ready = new TaskCompletionSource<JsonElement>(TaskCreationOptions.RunContinuationsAsynchronously);
             _ = Watch(engine, ready, ct);
-            await engine.StandardInput.WriteLineAsync(JsonSerializer.Serialize(new { link = Link.Password }));
+            await engine.StandardInput.WriteLineAsync(JsonSerializer.Serialize(new { link = Link.Password, gaming_mode=Gaming.IsChecked==true }));
             await engine.StandardInput.FlushAsync();
             JsonElement info = await ready.Task.WaitAsync(TimeSpan.FromSeconds(25), ct);
+            if(info.GetProperty("mode").GetString()!=(fullVpn?"vpn":"proxy"))throw new IOException("Engine/profile routing mismatch.");
             string ip = info.GetProperty("server_ip").GetString()!;
             if (!IPAddress.TryParse(ip, out var address) || (address.AddressFamily != System.Net.Sockets.AddressFamily.InterNetwork && address.AddressFamily != System.Net.Sockets.AddressFamily.InterNetworkV6)) throw new IOException("Invalid tunnel endpoint address.");
             int port = info.GetProperty("port").GetInt32();
@@ -131,6 +155,7 @@ public partial class MainWindow : Window
             Headline.Text = "You're in good company.";
             Hint.Text = fullVpn ? "Full-device IPv4 VPN · TCP + UDP · IPv6 transport guarded" : $"SOCKS5 · 127.0.0.1:{port} · TCP + UDP";
             ConnectButton.Content = "Disconnect";
+            TestButton.IsEnabled=true;
         }
         catch (OperationCanceledException) { }
         catch (Exception ex) { Error.Text = ex.Message; await Disconnect(); }
@@ -138,7 +163,7 @@ public partial class MainWindow : Window
     async Task Disconnect()
     {
         if (stopping) return; stopping = true;
-        session?.Cancel(); connecting = connected = false;
+        CancelTest();session?.Cancel(); connecting = connected = false;
         ConnectButton.IsEnabled = false;
         // EOF asks the VPN guardian to run its finally cleanup before exiting.
         if (vpn is { } v)
@@ -156,7 +181,7 @@ public partial class MainWindow : Window
         session?.Dispose(); session = null;
         Dog.State = "idle"; Dog.InvalidateVisual(); StateLabel.Text = "●  Ready when you are";
         Headline.Text = "Your network, a little calmer."; ConnectButton.Content = "Connect →";
-        VpnMode.IsEnabled = ProxyMode.IsEnabled = Link.IsEnabled = ConnectButton.IsEnabled = vpn == null;
+        Gaming.IsEnabled = Link.IsEnabled = ConnectButton.IsEnabled = TestButton.IsEnabled = vpn == null;
         UpdateModes(); stopping = false;
     }
     async void OnClosing(object? sender, CancelEventArgs e)
@@ -166,5 +191,33 @@ public partial class MainWindow : Window
         closing = true; ticker.Stop(); SystemEvents.UserPreferenceChanged -= SystemThemeChanged; Close();
     }
     static string Bytes(ulong n) => n < 1024 ? $"{n} B" : n < 1048576 ? $"{n / 1024d:F1} KiB" : $"{n / 1048576d:F1} MiB";
+    void CancelTest(){testSession?.Cancel();try{testEngine?.Kill(true);}catch(InvalidOperationException){} }
+    async void TestDelay(object sender,RoutedEventArgs e)
+    {
+        if(testing||connecting||closing)return;
+        try{ReadMode(Link.Password);}catch(IOException ex){Delay.Text=ex.Message;return;}
+        string testedLink=Link.Password;testing=true;TestButton.IsEnabled=false;TestButton.Content="Testing…";
+        Delay.Text="Testing HTTPS through this profile…";
+        using var cancellation=new CancellationTokenSource(TimeSpan.FromSeconds(30));testSession=cancellation;
+        Process? process=null;
+        try{
+            process=Start("namedp-engine.exe");testEngine=process;
+            var stdout=process.StandardOutput.ReadToEndAsync(cancellation.Token);
+            var stderr=process.StandardError.ReadToEndAsync(cancellation.Token);
+            await process.StandardInput.WriteLineAsync(JsonSerializer.Serialize(new{link=testedLink,gaming_mode=Gaming.IsChecked==true,relay_delay_only=true}));await process.StandardInput.FlushAsync();
+            await process.WaitForExitAsync(cancellation.Token);
+            if(process.ExitCode!=0)throw new IOException("Relay test failed. Check the profile, outbound and HTTPS reachability.");
+            using var doc=JsonDocument.Parse(await stdout);var result=doc.RootElement;
+            long ms=result.GetProperty("latency_ms").GetInt64();
+            if(result.GetProperty("event").GetString()!="relay_delay"||result.GetProperty("url").GetString()!="https://www.gstatic.com/generate_204"||result.GetProperty("status").GetInt32()!=204||ms<1||ms>15000)throw new IOException("Invalid relay test response.");
+            if(testedLink==Link.Password)Delay.Text=$"Relay delay: {ms} ms · HTTPS 204";
+        }catch(OperationCanceledException){Delay.Text="Relay test cancelled or timed out.";}
+        catch(Exception){if(testedLink==Link.Password)Delay.Text="Relay test failed; the VPN session is unchanged.";}
+        finally{
+            try{if(process!=null&&!process.HasExited)process.Kill(true);}catch(InvalidOperationException){}
+            process?.Dispose();if(testEngine==process)testEngine=null;testSession=null;
+            testing=false;TestButton.Content="Test delay";TestButton.IsEnabled=!connecting&&!closing&&vpn==null||connected;
+        }
+    }
 }
 
