@@ -76,7 +76,6 @@ jobs:
           if ($errors.Count) { throw ($errors | Out-String) }
           & ./scripts/test_windows_ipv6.ps1
           & ./scripts/test_windows_firewall.ps1
-          & ./scripts/test_windows_vpn.ps1
           dotnet run --project windows/namedP.Smoke -c Release
           if ($LASTEXITCODE -ne 0) { throw 'UI smoke failed' }
       - name: Package Windows client
@@ -104,6 +103,11 @@ jobs:
           if ((& "$target/namedp-engine.exe" --version).Trim() -ne $version) { throw 'Installed engine version mismatch' }
           $uninstall = Start-Process -FilePath "$target/unins000.exe" -ArgumentList '/VERYSILENT','/SUPPRESSMSGBOXES','/NORESTART' -PassThru -Wait
           if ($uninstall.ExitCode -ne 0 -or (Test-Path "$target/namedP.exe")) { throw 'Installer uninstall failed' }
+      - name: Windows PowerShell 5 Wintun and cleanup acceptance
+        shell: pwsh
+        run: |
+          & "$env:SystemRoot/System32/WindowsPowerShell/v1.0/powershell.exe" -NoProfile -NonInteractive -ExecutionPolicy Bypass -File scripts/test_windows_vpn.ps1
+          if ($LASTEXITCODE -ne 0) { throw 'Windows PowerShell VPN setup/cleanup failed' }
       - uses: actions/upload-artifact@v7
         with:
           name: namedP-windows-x64
