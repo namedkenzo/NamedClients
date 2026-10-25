@@ -86,8 +86,14 @@ try {
  }
  $stage = 'physical DNS guards'
  foreach ($physical in @(Get-NetAdapter | Where-Object { $_.ifIndex -ne $index -and $_.Status -eq 'Up' })) {
+  # Adapter names can include entries without a connected IP interface. Use
+  # the IP-layer alias recognized by NetSecurity, never an unbound NIC name.
+  $aliases=@(Get-NetIPInterface -InterfaceIndex $physical.ifIndex -ErrorAction SilentlyContinue | Where-Object { $_.ConnectionState -eq 'Connected' } | Select-Object -ExpandProperty InterfaceAlias -Unique)
+  foreach($alias in $aliases){
+  $stage = "DNS guard on IP interface $alias"
   foreach ($protocol in @('UDP','TCP')) {
-   $rules += New-NetFirewallRule -Name "$sessionName-dns-$($physical.ifIndex)-$protocol" -DisplayName "$sessionName DNS guard" -Direction Outbound -Action Block -Protocol $protocol -RemotePort 53 -InterfaceAlias $physical.Name -Profile Any
+   $rules += New-NetFirewallRule -Name "$sessionName-dns-$($physical.ifIndex)-$protocol" -DisplayName "$sessionName DNS guard" -Direction Outbound -Action Block -Protocol $protocol -RemotePort 53 -InterfaceAlias $alias -Profile Any
+  }
   }
  }
  foreach ($prefix in @('0.0.0.0/1','128.0.0.0/1')) { $routes += New-NetRoute -InterfaceIndex $index -DestinationPrefix $prefix -NextHop '0.0.0.0' -RouteMetric 1 -PolicyStore ActiveStore }
