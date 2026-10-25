@@ -17,5 +17,8 @@ foreach($literal in @('2001:db8::1','ffff:ffff:ffff:ffff:ffff:ffff:ffff:ffff',':
  foreach($other in @('2001:4860:4860::8888','2606:4700:4700::1111')){
   if(@($ranges|Where-Object{ContainsIP $_ ([System.Net.IPAddress]::Parse($other))}).Count -ne 1){throw 'IPv6 guard has a gap or overlap'}
  }
+ $controlRanges=@(NamedPIPv6Ranges $endpoint $true)
+ foreach($control in @('fe80::1','ff02::1:ff00:1','ff02::2')){if(@($controlRanges|Where-Object{ContainsIP $_ ([System.Net.IPAddress]::Parse($control))}).Count -ne 0){throw 'IPv6 guard blocks neighbor/router discovery'}}
+ foreach($other in @('2001:4860:4860::8888','2606:4700:4700::1111')){if(@($controlRanges|Where-Object{ContainsIP $_ ([System.Net.IPAddress]::Parse($other))}).Count -ne 1){throw 'Control-traffic exclusions opened an Internet IPv6 gap'}}
 }
 Write-Output 'IPv6 endpoint bypass and exact non-endpoint guard ranges passed (no routes/firewall changed).'

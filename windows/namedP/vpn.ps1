@@ -12,15 +12,36 @@ $outerFamily = if ($outerV6) { 'IPv6' } else { 'IPv4' }
 $outerDefault = if ($outerV6) { '::/0' } else { '0.0.0.0/0' }
 $outerZero = if ($outerV6) { '::' } else { '0.0.0.0' }
 $outerPrefix = if ($outerV6) { "$ServerIP/128" } else { "$ServerIP/32" }
-function NamedPIPv6Ranges([System.Net.IPAddress]$Endpoint) {
- # Cover IPv6 except precisely the selected endpoint, not an entire subnet.
- $source = $Endpoint.GetAddressBytes()
- for ($bit=0; $bit -lt 128; $bit++) {
-  $bytes = New-Object byte[] 16
-  for ($j=0; $j -lt $bit; $j++) { $index=[int][math]::Floor($j/8); $mask=1 -shl (7-($j%8)); $bytes[$index]=$bytes[$index] -bor ($source[$index] -band $mask) }
-  $index=[int][math]::Floor($bit/8); $mask=1 -shl (7-($bit%8))
-  if (($source[$index] -band $mask) -eq 0) { $bytes[$index]=$bytes[$index] -bor $mask }
-  ([System.Net.IPAddress]::new($bytes)).ToString() + '/' + ($bit+1)
+function NamedPIPv6Ranges([System.Net.IPAddress]$Endpoint, [bool]$PreserveControl = $false) {
+ # Iterative CIDR subtraction: never block our endpoint or essential link-local
+ # neighbor discovery. No recursion-limit dependence in Windows PowerShell 5.
+ $exclusions = @(@{ Bytes=$Endpoint.GetAddressBytes(); Length=128 })
+ if ($PreserveControl) {
+  $exclusions += @{ Bytes=([System.Net.IPAddress]::Parse('fe80::')).GetAddressBytes(); Length=10 }
+  $exclusions += @{ Bytes=([System.Net.IPAddress]::Parse('ff02::')).GetAddressBytes(); Length=16 }
+ }
+ $stack = [System.Collections.Generic.Stack[object]]::new()
+ $stack.Push(@{ Bytes=(New-Object byte[] 16); Length=0 })
+ while ($stack.Count -gt 0) {
+  $prefix=$stack.Pop(); $covered=$false; $split=$false
+  foreach ($exclude in $exclusions) {
+   $matches=$true
+   for ($bit=0; $bit -lt [math]::Min($prefix.Length,$exclude.Length); $bit++) {
+    $index=[int][math]::Floor($bit/8); $mask=1 -shl (7-($bit%8))
+    if (($prefix.Bytes[$index] -band $mask) -ne ($exclude.Bytes[$index] -band $mask)) { $matches=$false; break }
+   }
+   if ($matches) {
+    if ($exclude.Length -le $prefix.Length) { $covered=$true; break }
+    $split=$true
+   }
+  }
+  if ($covered) { continue }
+  if (!$split) { ([System.Net.IPAddress]::new([byte[]]$prefix.Bytes)).ToString()+'/'+$prefix.Length; continue }
+  [byte[]]$left=$prefix.Bytes.Clone(); [byte[]]$right=$prefix.Bytes.Clone()
+  $index=[int][math]::Floor($prefix.Length/8); $mask=1 -shl (7-($prefix.Length%8))
+  $right[$index]=$right[$index] -bor $mask
+  $stack.Push(@{ Bytes=$right; Length=($prefix.Length+1) })
+  $stack.Push(@{ Bytes=$left; Length=($prefix.Length+1) })
  }
 }
 $sessionName = 'namedP-' + [guid]::NewGuid().ToString('N').Substring(0,12)
@@ -50,8 +71,13 @@ try {
  Set-DnsClientServerAddress -InterfaceIndex $index -ServerAddresses @('1.1.1.1','1.0.0.1')
  # Preserve the one physical IPv6 tunnel endpoint when selected; block all
  # other IPv6 destinations, not the outer ICMPv6 connection itself.
- $blockedV6 = if ($outerV6) { @(NamedPIPv6Ranges $parsed) } else { @('::/0') }
+ $blockedV6 = if ($outerV6) { @(NamedPIPv6Ranges $parsed $true) } else { @('::/0') }
  $rules += New-NetFirewallRule -Name "$sessionName-v6" -DisplayName "$sessionName IPv6 guard" -Direction Outbound -Action Block -RemoteAddress $blockedV6 -Profile Any
+ if ($outerV6) {
+  foreach ($protocol in @('TCP','UDP')) {
+   $rules += New-NetFirewallRule -Name "$sessionName-v6-local-$protocol" -DisplayName "$sessionName IPv6 link-local guard" -Direction Outbound -Action Block -RemoteAddress @('fe80::/10','ff02::/16') -Protocol $protocol -Profile Any
+  }
+ }
  foreach ($physical in @(Get-NetAdapter | Where-Object { $_.ifIndex -ne $index -and $_.Status -eq 'Up' })) {
   foreach ($protocol in @('UDP','TCP')) {
    $rules += New-NetFirewallRule -Name "$sessionName-dns-$($physical.ifIndex)-$protocol" -DisplayName "$sessionName DNS guard" -Direction Outbound -Action Block -Protocol $protocol -RemotePort 53 -InterfaceAlias $physical.Name -Profile Any
