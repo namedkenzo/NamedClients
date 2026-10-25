@@ -7,6 +7,11 @@ using NamedP;
 
 static class Program
 {
+ static void CloseAndPump(MainWindow window){
+  window.Close();var until=DateTime.UtcNow.AddSeconds(5);
+  while(window.IsVisible&&DateTime.UtcNow<until){var frame=new System.Windows.Threading.DispatcherFrame();window.Dispatcher.BeginInvoke(System.Windows.Threading.DispatcherPriority.ApplicationIdle,new Action(()=>frame.Continue=false));System.Windows.Threading.Dispatcher.PushFrame(frame);}
+  if(window.IsVisible)throw new Exception("Window did not close after profile flush");
+ }
  [STAThread] static int Main()
  {
   var app = new App(); app.InitializeComponent();app.ShutdownMode=ShutdownMode.OnExplicitShutdown;
@@ -20,13 +25,13 @@ static class Program
   var window = new MainWindow(vault); window.Show();
   if(((PasswordBox)window.FindName("Link")).Password!=saved)throw new Exception("Saved profile not restored into UI");
   ((PasswordBox)window.FindName("Link")).Password="pingtunnel://closed.example?mode=vpn&key=123456";
-  window.Close(); // Closing must flush the pending debounce, not lose the edit.
+  CloseAndPump(window); // Closing must flush the pending debounce, not lose the edit.
   window=new MainWindow(vault);window.Show();
   if(((PasswordBox)window.FindName("Link")).Password!="pingtunnel://closed.example?mode=vpn&key=123456")throw new Exception("Profile lost on restart");
   ((PasswordBox)window.FindName("Link")).Password="";
-  window.Close();if(vault.Load()!=""||File.Exists(Path.Combine(data,"profile.dat")))throw new Exception("Cleared profile persisted");
+  CloseAndPump(window);if(vault.Load()!=""||File.Exists(Path.Combine(data,"profile.dat")))throw new Exception("Cleared profile persisted");
   File.WriteAllBytes(Path.Combine(data,"profile.dat"),new byte[]{1,2,3});
-  window=new MainWindow(vault);window.Show();window.Close();
+  window=new MainWindow(vault);window.Show();CloseAndPump(window);
   if(!File.ReadAllBytes(Path.Combine(data,"profile.dat")).SequenceEqual(new byte[]{1,2,3}))throw new Exception("Unreadable saved data silently overwritten");
   vault.Save("");
   window=new MainWindow(vault);window.Show();
@@ -64,7 +69,7 @@ static class Program
    catch(System.Reflection.TargetInvocationException ex) when(ex.InnerException is IOException){if(valid)throw;}
   }
   foreach (string state in new[]{"idle","connecting","connected"}) { dog.State=state; dog.InvalidateVisual(); window.UpdateLayout(); }
-  window.Close();vault.Save("");Directory.Delete(data); // Only our uniquely created empty test directory.
+  CloseAndPump(window);vault.Save("");Directory.Delete(data); // Only our uniquely created empty test directory.
   Console.WriteLine("Encrypted profile restart, immediate-close flush, deletion, corruption protection, polished themes, mode, delay and mascot passed.");
   return 0;
  }

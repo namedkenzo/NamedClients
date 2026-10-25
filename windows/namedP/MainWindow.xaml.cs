@@ -15,7 +15,7 @@ public partial class MainWindow : Window
 {
     Process? engine, vpn;
     CancellationTokenSource? session;
-    bool fullVpn = true, connecting, connected, stopping, closing;
+    bool fullVpn = true, connecting, connected, stopping, closing, closePending;
     DateTime connectedAt;
     Process? testEngine;
     CancellationTokenSource? testSession;
@@ -99,12 +99,12 @@ public partial class MainWindow : Window
     {
         try { if (Clipboard.ContainsText()) Link.Password = Clipboard.GetText().Trim(); } catch (System.Runtime.InteropServices.COMException) { Error.Text = "Clipboard busy. Try again."; }
     }
-    void SaveProfile()
+    bool SaveProfile()
     {
-        profileSaver.Stop(); if(!profileDirty)return;
-        try { vault.Save(Link.Password);profileDirty=false;ProfileNote.Text=Link.Password.Length>0?"Saved · protected by your Windows account":"No saved link · paste one to get started"; }
+        profileSaver.Stop(); if(!profileDirty)return true;
+        try { vault.Save(Link.Password);profileDirty=false;ProfileNote.Text=Link.Password.Length>0?"Saved · protected by your Windows account":"No saved link · paste one to get started";return true; }
         catch(Exception ex) when(ex is IOException or UnauthorizedAccessException or System.Security.Cryptography.CryptographicException)
-        { ProfileNote.Text="Could not save this link. Keep a backup and try again."; }
+        { ProfileNote.Text="Could not save this link. Keep a backup and try again.";return false; }
     }
     void ForgetProfile(object sender,RoutedEventArgs e)
     {
@@ -213,7 +213,14 @@ public partial class MainWindow : Window
     }
     async void OnClosing(object? sender, CancelEventArgs e)
     {
-        if (closing) return; e.Cancel = true; SaveProfile(); await Disconnect();
+        if (closing) return; e.Cancel = true;
+        if(closePending)return;
+        if(!SaveProfile() && MessageBox.Show(this,"This link could not be saved. Close anyway? Keep a backup before closing.","Link not saved",MessageBoxButton.YesNo,MessageBoxImage.Warning)!=MessageBoxResult.Yes)return;
+        closePending=true;
+        // Let the first Closing event return before calling Close again, even
+        // when disconnected cleanup completes synchronously.
+        await System.Windows.Threading.Dispatcher.Yield(DispatcherPriority.Background);
+        await Disconnect();closePending=false;
         if (vpn != null) return;
         closing = true; ticker.Stop(); profileSaver.Stop(); SystemEvents.UserPreferenceChanged -= SystemThemeChanged; Close();
     }
