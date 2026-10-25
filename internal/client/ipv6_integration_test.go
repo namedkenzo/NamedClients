@@ -23,6 +23,7 @@ func TestIPv6PanelTCPUDPAndReaders(t *testing.T){
   user,err:=db.PutUser(store.User{Name:"IPv6-loopback",Enabled:true,Encryption:mode});if err!=nil{t.Fatal(err)}
   transport,_,err:=core.ListenDual("127.0.0.1","::1",reader);if err!=nil{t.Fatal(err)}
   conf:=store.DefaultConfig();conf.AllowPrivate=true;server,err:=core.New(db,conf,transport);if err!=nil{t.Fatal(err)};defer server.Stop();go server.Serve(ctx)
+  if server.ReaderMode()!=reader{t.Fatalf("requested reader is not active: %s",server.ReaderWarning())}
   tunnel,err:=Open(ctx,Profile{Host:"::1",Port:1080,Family:6,Mode:"vpn",Credential:wire.Credential{Key:user.Key,Mode:mode,Secret:user.EncryptionKey}});if err!=nil{t.Fatal(err)};defer tunnel.Close()
   if err=tunnel.Probe(ctx);err!=nil{t.Fatal(err)}
   tcp,err:=net.Listen("tcp4","127.0.0.1:0");if err!=nil{t.Fatal(err)};defer tcp.Close()

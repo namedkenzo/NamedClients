@@ -9,6 +9,9 @@ func TestRawIPv6LoopbackHandshake(t *testing.T){
  server,err:=net.ListenIP("ip6:ipv6-icmp",&net.IPAddr{IP:net.IPv6loopback});if err!=nil{t.Fatal(err)};defer server.Close()
  ctx,cancel:=context.WithTimeout(context.Background(),8*time.Second);defer cancel()
  var received,requests,replies,invalid,written atomic.Int32
+ // Some Winsock providers expose the kernel's echoed probe but not the Echo
+ // Request itself. In either case the test responder must emit an authenticated
+ // protocol reply; a plain kernel echo is never accepted by Tunnel.Probe.
  go func(){buffer:=make([]byte,65535);for{n,peer,err:=server.ReadFromIP(buffer);if err!=nil{return};received.Add(1);typ,id,seq,payload,err:=wire.DecodeEcho6(buffer[:n]);if err!=nil{invalid.Add(1);continue};if typ==128{requests.Add(1)}else{replies.Add(1)};m,err:=wire.DecodeMessage(payload);if err!=nil||m.Key!=123||m.Kind!=1||m.ReplyType!=0{continue};m.ReplyType=-1;if _,err=server.WriteToIP(wire.Echo6(129,id,seq,wire.EncodeMessage(m)),peer);err==nil{written.Add(1)}}}()
  p,err:=ParseProfile("pingtunnel://[::1]?key=123");if err!=nil{t.Fatal(err)};tunnel,err:=Open(ctx,p);if err!=nil{t.Fatal(err)};defer tunnel.Close()
  if err=tunnel.Probe(ctx);err!=nil{t.Fatalf("%v; loopback packets=%d requests=%d replies=%d malformed=%d auth replies written=%d",err,received.Load(),requests.Load(),replies.Load(),invalid.Load(),written.Load())}
