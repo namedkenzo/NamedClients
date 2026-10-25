@@ -143,13 +143,13 @@ class MainActivity:Activity() {
             tag="connection-hero"
             background=GradientDrawable(GradientDrawable.Orientation.TL_BR,intArrayOf(Color.parseColor(if(night)"#203B30"else"#E4F0E7"),surface)).apply{cornerRadius=dp(26).toFloat();setStroke(dp(1),line)}
             addView(row().apply{
-                addView(text(tr("A LITTLE COMPANION. A PRIVATE CONNECTION.","همراهی کوچک؛ اتصالی خصوصی."),9f,muted,true).apply{layoutParams=LinearLayout.LayoutParams(0,-2,1f)})
-                addView(text("● ICMP",9f,muted))
+                addView(text(tr("A LITTLE COMPANION. A PRIVATE CONNECTION.","همراهی کوچک؛ اتصالی خصوصی."),9f,muted,true).apply{layoutParams=LinearLayout.LayoutParams(0,-2,1f);maxLines=1;ellipsize=android.text.TextUtils.TruncateAt.END})
+                addView(text("● ICMP",9f,muted).apply{layoutParams=LinearLayout.LayoutParams(-2,-2).apply{marginStart=dp(6)}})
             })
         }
         val stage=FrameLayout(this).apply {layoutParams=LinearLayout.LayoutParams(-1,dp(168))}
         stage.addView(View(this).apply {background=GradientDrawable().apply {shape=GradientDrawable.OVAL;setColor(Color.TRANSPARENT);setStroke(dp(1),line)}},FrameLayout.LayoutParams(dp(152),dp(152),Gravity.CENTER))
-        stage.addView(DachshundView(this).apply {night=this@MainActivity.night;this.state=state.state},FrameLayout.LayoutParams(-1,dp(168),Gravity.CENTER))
+        stage.addView(DachshundView(this).apply {tag="companion-art";night=this@MainActivity.night;this.state=state.state},FrameLayout.LayoutParams(-1,dp(168),Gravity.CENTER))
         hero.addView(stage)
         hero.addView(chip(when(state.state){"connected"->"●  "+tr("Connected","متصل");"connecting"->"◌  "+tr("Connecting","در حال اتصال");"error"->tr("Needs attention","نیاز به بررسی");else->tr("Ready when you are","آمادهٔ اتصال")},if(active())accent else muted).apply{tag="connection-status";layoutParams=LinearLayout.LayoutParams(-2,-2).apply{gravity=Gravity.CENTER_HORIZONTAL}})
         gap(hero,13)
@@ -210,7 +210,7 @@ class MainActivity:Activity() {
                 if(selected()?.id==profile.id)background=rounded(surface,22).apply{setStroke(dp(1),accent)}
                 addView(row().apply{addView(text(profile.name,16f,ink,true).apply{layoutParams=LinearLayout.LayoutParams(0,-2,1f);maxLines=1;ellipsize=android.text.TextUtils.TruncateAt.END});addView(chip(modeLabel(profile.mode)))});gap(this,8)
                 addView(text(profile.host,12f,muted));gap(this,12)
-                addView(row().apply{addView(text(relayCaption(profile),11f,muted).apply{layoutParams=LinearLayout.LayoutParams(0,-2,1f)});if(selected()?.id==profile.id)addView(text("●  "+tr("Selected","انتخاب‌شده"),10f,accent,true))});gap(this,8)
+                addView(row().apply{addView(text(relayCaption(profile),11f,muted).apply{layoutParams=LinearLayout.LayoutParams(0,-2,1f)});if(selected()?.id==profile.id)addView(text("●  "+tr("Selected","انتخاب‌شده"),10f,accent,true).apply{layoutParams=LinearLayout.LayoutParams(-2,-2)})});gap(this,8)
                 addView(text(tr("Tap for details · hold to remove","جزئیات با لمس؛ حذف با نگه‌داشتن"),10f,muted));isFocusable=true
                 setOnClickListener{openDetails(profile)}
                 setOnLongClickListener{if(active())notice(tr("Disconnect before removing a profile","پیش از حذف پروفایل اتصال را قطع کنید"))else dialog().setTitle(tr("Remove connection?","اتصال حذف شود؟")).setMessage(profile.name).setNegativeButton(tr("Cancel","انصراف"),null).setPositiveButton(tr("Remove","حذف")){_,_->try{profiles.remove(profile);store.save(profiles);render()}catch(e:Exception){notice(e.message?:"Could not save")}}.show();true}

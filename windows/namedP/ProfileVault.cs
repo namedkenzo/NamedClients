@@ -25,7 +25,8 @@ public sealed class ProfileVault(string path)
     }
     public void Save(string link)
     {
-        if (string.IsNullOrWhiteSpace(link)) { File.Delete(path); return; }
+        if (string.IsNullOrWhiteSpace(link))
+        { try { File.Delete(path); } catch (DirectoryNotFoundException) { } return; }
         if (Encoding.UTF8.GetByteCount(link) > MaxBytes) throw new IOException("Profile is too large to save.");
         byte[] cleartext = Encoding.UTF8.GetBytes(link);
         byte[] ciphertext;

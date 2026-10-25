@@ -5,13 +5,13 @@
 [English](README.md) · [آخرین ریلیز مشترک](https://github.com/namedkenzo/NamedClients/releases/latest) · [وب‌پنل NamedICMP](https://github.com/namedkenzo/NamedICMP)
 
 خانهٔ کلاینت‌های ویندوز و اندروید برای کانفیگ‌های وب‌پنل **NamedICMP**.
-هر دو نسخهٔ **۱٫۰٫۰** در یک ریلیز عادی، Latest و بدون برچسب پیش‌انتشار قرار دارند؛ نسخهٔ وب‌پنل مستقل است.
+هر دو نسخهٔ **۱٫۰٫۱** در یک ریلیز عادی، Latest و بدون برچسب پیش‌انتشار قرار دارند؛ نسخهٔ وب‌پنل مستقل است.
 
 | دانلود | پلتفرم | اجرا |
 | --- | --- | --- |
-| [نصب‌کنندهٔ EXE](https://github.com/namedkenzo/NamedClients/releases/download/namedp-v1.0.0/namedP-1.0.0-windows-x64-setup.exe) | ویندوز ۱۰/۱۱، x64 | انتخاب مسیر نصب و میان‌بر |
-| [ZIP پرتابل](https://github.com/namedkenzo/NamedClients/releases/download/namedp-v1.0.0/namedP-1.0.0-windows-x64.zip) | ویندوز ۱۰/۱۱، x64 | استخراج کل پوشه و اجرای namedP.exe |
-| [APK اندروید](https://github.com/namedkenzo/NamedClients/releases/download/namedp-v1.0.0/namedP-1.0.0-android.apk) | اندروید ۸ به بالا، arm64 | بکاپ لینک‌ها، سپس نصب مجدد نسخهٔ آلفا |
+| [نصب‌کنندهٔ EXE](https://github.com/namedkenzo/NamedClients/releases/download/namedp-v1.0.1/namedP-1.0.1-windows-x64-setup.exe) | ویندوز ۱۰/۱۱، x64 | انتخاب مسیر نصب و میان‌بر |
+| [ZIP پرتابل](https://github.com/namedkenzo/NamedClients/releases/download/namedp-v1.0.1/namedP-1.0.1-windows-x64.zip) | ویندوز ۱۰/۱۱، x64 | استخراج کل پوشه و اجرای namedP.exe |
+| [APK اندروید](https://github.com/namedkenzo/NamedClients/releases/download/namedp-v1.0.1/namedP-1.0.1-android.apk) | اندروید ۸ به بالا، arm64 | بکاپ لینک‌ها، سپس نصب مجدد نسخهٔ آلفا |
 
 ## اتصال ساده
 
@@ -26,14 +26,14 @@ VPN یا پروکسی از خود کانفیگ انتخاب می‌شود؛ کل
 - Gaming اختیاری با صف کوتاه UDP؛ بعد از تغییر دوباره وصل شوید. کاهش پینگ تضمینی نیست و افت بسته ممکن است بیشتر شود.
 - حفظ TCP/UDP، رمز عددی یا رمزنگاری، اتصال بیرونی IPv4/IPv6 و دامنه. این آپدیت ظاهری نیازی به تغییر وب‌پنل ندارد.
 
-[راهنمای ویندوز](docs/NAMEDP.md) · [راهنمای اندروید](android/README.md) · [تغییرات ۱٫۰٫۰](docs/RELEASE-namedp-v1.0.0.md)
+[راهنمای ویندوز](docs/NAMEDP.md) · [راهنمای اندروید](android/README.md) · [تغییرات ۱٫۰٫۱](docs/RELEASE-namedp-v1.0.1.md)
 
 ## به‌روزرسانی
 
 در ویندوز نسخهٔ قبلی را ببندید و Setup را اجرا کنید یا ZIP جدید را کامل در یک پوشهٔ تازه استخراج کنید.
 دسترسی Administrator لازم است.
 
-**ارتقا از آلفای اندروید به ۱٫۰٫۰ یک‌بار نیاز به نصب مجدد دارد.** کلید امضای قبلی در اسکریپت قدیمی حفظ نشده بود.
+**ارتقا از آلفای اندروید به ۱٫۰٫۱ یک‌بار نیاز به نصب مجدد دارد.** کلید امضای قبلی در اسکریپت قدیمی حفظ نشده بود.
 قبل از حذف، وارد جزئیات هر کانفیگ شوید، لینک کامل را Copy کنید و جای خصوصی نگه دارید؛
 سپس آلفا را حذف، APK جدید را نصب و لینک‌ها را Paste کنید. حذف برنامه کانفیگ‌ها را پاک می‌کند.
 APK جدید دیباگ‌پذیر نیست و با تأیید مالک امضای جدید دارد؛ نسخهٔ Play Store نیست.

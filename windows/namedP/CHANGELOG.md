@@ -1,5 +1,11 @@
 # namedP changelog
 
+## 1.0.1 — 2026-10-25
+
+- Shared corrected Windows + Android release; keep the refined Windows layout.
+- Allow Forget/clear on a first run before the data directory exists.
+- Retain encrypted autosave, close/reopen recovery and sticky connection controls.
+
 ## 1.0.0 — 2026-10-25
 
 - Fix lost connection links after restart: account-bound DPAPI autosave, atomic

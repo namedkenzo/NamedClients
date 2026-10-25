@@ -1,11 +1,11 @@
 #ifndef ClientVersion
- #define ClientVersion "1.0.0"
+ #define ClientVersion "1.0.1"
 #endif
 [Setup]
 AppId={{C9D683F3-BA6C-4418-8D45-E9492133B742}
 AppName=namedP
 AppVersion={#ClientVersion}
-VersionInfoVersion=1.0.0.0
+VersionInfoVersion=1.0.1.0
 AppPublisher=namedkenzo
 AppPublisherURL=https://github.com/namedkenzo/NamedClients
 DefaultDirName={autopf}\namedP

@@ -18,6 +18,7 @@ static class Program
   string data=Path.Combine(Path.GetTempPath(),"namedP-vault-tests-"+Guid.NewGuid().ToString("N"));
   Directory.CreateDirectory(data);
   var vault=new ProfileVault(Path.Combine(data,"profile.dat"));
+  new ProfileVault(Path.Combine(data,"not-created","profile.dat")).Save("");
   string saved="pingtunnel://restart.example?mode=proxy&encrypt=chacha20&encrypt_key=private-key%2Bvalue";
   if(vault.Load()!="")throw new Exception("Missing profile must be empty");
   vault.Save(saved);

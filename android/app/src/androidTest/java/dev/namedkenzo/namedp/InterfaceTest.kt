@@ -47,6 +47,9 @@ class InterfaceTest {
     val rect=android.graphics.Rect();assertTrue("Primary action must stay visible without scrolling",connect.getGlobalVisibleRect(rect));assertTrue(rect.height()>0)
     assertEquals(View.LAYOUT_DIRECTION_RTL,connect.layoutDirection)
     assertNotNull(view.findViewWithTag<View>("connection-hero"))
+    val hero=view.findViewWithTag<View>("connection-hero")
+    assertTrue("Hero must not expand to a tall, empty row",hero.height < 400*activity.resources.displayMetrics.density)
+    assertTrue("Companion must be visible without scrolling",view.findViewWithTag<View>("companion-art").getGlobalVisibleRect(android.graphics.Rect()))
     assertNotNull(view.findViewWithTag<View>("connection-status"))
     view.findViewWithTag<View>("tab-profiles").performClick();assertNotNull(view.findViewWithTag<View>("paste-profile"))
     view.findViewWithTag<View>("tab-settings").performClick();assertNotNull(view.findViewWithTag<View>("gaming-mode"))
@@ -266,6 +269,8 @@ class InterfaceTest {
     Thread.sleep(350)
     scenario.onActivity { activity ->
      val view=activity.window.decorView.rootView
+     assertTrue("Preview must show the companion",view.findViewWithTag<View>("companion-art").getGlobalVisibleRect(android.graphics.Rect()))
+     assertTrue("Preview hero must stay compact",view.findViewWithTag<View>("connection-hero").height < 400*activity.resources.displayMetrics.density)
      assertTrue("Window must be laid out",view.width>0 && view.height>0)
      val bitmap=Bitmap.createBitmap(view.width,view.height,Bitmap.Config.ARGB_8888)
      view.draw(Canvas(bitmap))

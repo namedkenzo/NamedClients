@@ -35,6 +35,8 @@ jobs:
       - run: node scripts/check_android_relay.cjs
   android:
     runs-on: ubuntu-latest
+    permissions:
+      contents: write
     timeout-minutes: 30
     steps:
       - uses: actions/checkout@v7
@@ -108,7 +110,7 @@ jobs:
             adb pull /sdcard/Pictures/namedP-tests/preview-dark-connected-preview.png dist/android/previews/dark-connected-preview.png
             adb pull /sdcard/Pictures/namedP-tests/preview-details.png dist/android/previews/details.png
             node scripts/check_png.cjs dist/android/previews
-            adb install -r android/app/build/outputs/apk/debug/app-debug.apk
+            if [ -f previous-apk/namedP-1.0.0-android.apk ]; then adb install -r previous-apk/namedP-1.0.0-android.apk; else adb install -r android/app/build/outputs/apk/debug/app-debug.apk; fi
             adb install -r android/app/build/outputs/apk/androidTest/debug/app-debug-androidTest.apk
             adb shell am instrument -w -r -e upgrade prepare -e class dev.namedkenzo.namedp.InterfaceTest#releaseUpgradePreservesEncryptedProfiles dev.namedkenzo.namedp.test/androidx.test.runner.AndroidJUnitRunner > upgrade-prepare.txt
             cat upgrade-prepare.txt

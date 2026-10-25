@@ -28,8 +28,14 @@ alias in a private offline backup. Future updates require repository Actions sec
 Set these in **Settings → Secrets and variables → Actions → New repository secret**.
 Do not paste the key/password in chat, issues, workflow logs or repository files.
 The workflow does not have permission to create these owner secrets automatically.
-Missing secrets after the first stable release stop the build; it cannot silently
-replace the signing identity. Certificate checks compare future APKs with the
+Without secrets, an owner-assisted one-run handoff can provide the same identity:
+the runner posts an ephemeral public recipient certificate on the `signing-handoff`
+branch, then waits at most eight minutes for a CMS AES-256-GCM envelope containing
+the owner's existing key bundle. Only that runner holds the recipient private key.
+The branch contains public certificates and encrypted envelopes only, never a
+plaintext key or password. Wrong/missing payloads fail the build; no replacement
+identity is generated. Configure the secrets above for unattended builds.
+Certificate checks compare future APKs with the
 stable 1.0.0 asset. Store the backup before discarding the private task workspace.
 
 The fixture upgrade test verifies that profiles survive an in-place update when

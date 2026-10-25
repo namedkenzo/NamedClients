@@ -12,7 +12,7 @@ import (
  "namedp/internal/client"
  "namedp/internal/androidrelay"
 )
-const version = "1.0.0"
+const version = "1.0.1"
 
 func main(){if len(os.Args)==2 && os.Args[1]=="--version"{fmt.Println(version);return};if err:=run();err!=nil{fmt.Fprintln(os.Stderr,err);os.Exit(1)}}
 func run()error{

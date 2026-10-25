@@ -1,8 +1,8 @@
-# namedP for Android · 1.0.0
+# namedP for Android · 1.0.1
 
 A native, connection-first client for the NamedICMP web panel.
 Android 8+ (API 26), arm64 phones and x86_64 emulators.
-Download `namedP-1.0.0-android.apk` from the [shared stable release](https://github.com/namedkenzo/NamedClients/releases/latest).
+Download `namedP-1.0.1-android.apk` from the [shared stable release](https://github.com/namedkenzo/NamedClients/releases/latest).
 
 ## Experience
 
@@ -47,16 +47,16 @@ Per-app VPN requires at least one selected application other than namedP.
 IPv4/IPv6 endpoints and AAAA-only family selection are supported.
 Literal IPv6 URIs use brackets; Details accepts a bare address.
 The VPN captures IPv6 rather than deliberately bypassing it; complete inner IPv6 forwarding is not promised.
-DNS uses 1.1.1.1 / 1.0.0.1 through the VPN. Vendor restrictions or ICMP blocking are reported as failures.
+DNS uses 1.1.1.1 / 1.0.1.1 through the VPN. Vendor restrictions or ICMP blocking are reported as failures.
 Connected validates the tunnel and local startup, not access to every website.
 
 ## Updating and signing
 
-**Alpha → 1.0.0 requires a one-time reinstall with a new signing identity**, explicitly approved
+**Alpha → 1.0.1 requires a one-time reinstall with a new signing identity**, explicitly approved
 by the owner after the old workflow failed to preserve its private key.
 First copy every complete profile link from Details and keep the links somewhere private.
-Only then uninstall the alpha, install 1.0.0 and Paste the links. Uninstalling deletes saved Keystore profiles.
-Version code 8 has a **non-debuggable release** manifest. Future APKs must match the stable identity;
+Only then uninstall the alpha, install 1.0.1 and Paste the links. Uninstalling deletes saved Keystore profiles.
+Version code 9 has a **non-debuggable release** manifest. Future APKs must match the stable identity;
 missing signing secrets fail the build rather than generating another incompatible update.
 The emulator checks upgrades with a saved encrypted profile between builds sharing the new identity.
 No private signing material is placed in public Actions caches. See [signing and recovery](../docs/ANDROID_SIGNING.md).

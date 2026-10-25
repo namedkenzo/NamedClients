@@ -13,9 +13,8 @@ if [[ -n "${NAMEDP_KEYSTORE_BASE64:-}" ]]; then
 else
   task_version=$(node -e 'process.stdout.write(require("fs").readFileSync("android/app/build.gradle.kts","utf8").match(/versionName = "([^"]+)"/)[1])')
   if [[ "$task_version" != 1.0.0 ]] || gh release view namedp-v1.0.0 >/dev/null 2>&1; then
-    echo '::error::A published signing identity already exists or bootstrap is not version 1.0.0. Configure the owner signing secrets; refusing to generate an incompatible key.'
-    exit 1
-  fi
+    source scripts/receive_android_signing.sh
+  else
   export NAMEDP_STORE_PASSWORD=$(openssl rand -base64 36)
   export NAMEDP_KEY_PASSWORD="$NAMEDP_STORE_PASSWORD"
   export NAMEDP_KEY_ALIAS=namedp
@@ -29,6 +28,7 @@ else
   openssl cms -encrypt -aes-256-gcm -binary -in "$task_signing_dir/backup.tar" -outform PEM -out "$task_signing_dir/backup.cms.pem" .github/signing-backup-recipient.pem
   echo "NAMEDP_ENCRYPTED_SIGNING_BACKUP=$(base64 -w0 "$task_signing_dir/backup.cms.pem")"
   echo 'Generated approved 1.0.0 signing identity; encrypted recovery envelope recorded for the owner.'
+  fi
 fi
 chmod 600 "$task_store"
 echo "::add-mask::$NAMEDP_STORE_PASSWORD"

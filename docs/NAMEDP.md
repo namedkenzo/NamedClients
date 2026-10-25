@@ -1,8 +1,8 @@
-# namedP for Windows · 1.0.0
+# namedP for Windows · 1.0.1
 
 Download the [shared stable release](https://github.com/namedkenzo/NamedClients/releases/latest).
-Choose `namedP-1.0.0-windows-x64-setup.exe` for an installer with folder selection,
-or extract **all files** from `namedP-1.0.0-windows-x64.zip` and launch `namedP.exe`.
+Choose `namedP-1.0.1-windows-x64-setup.exe` for an installer with folder selection,
+or extract **all files** from `namedP-1.0.1-windows-x64.zip` and launch `namedP.exe`.
 Windows 10/11 x64 is supported; the .NET runtime is bundled.
 Administrator access is required for raw ICMP and Wintun. Close older copies before updating.
 
@@ -54,7 +54,7 @@ The known NetSecurity `::/0` error is fixed using accepted /1 prefixes.
 
 ## Release and signing
 
-The Windows app and Android APK share one **namedp-v1.0.0 stable GitHub release**.
+The Windows app and Android APK share one **namedp-v1.0.1 stable GitHub release**.
 The web panel keeps a separate version and does not download client packages during installation.
 Windows Setup/app are not publisher Authenticode signed; SmartScreen/UAC warnings may appear.
 Wintun is supplier-signed. Checksums and dependency licenses ship with the packages.
@@ -75,7 +75,7 @@ The shared release gates both platforms on their tests before publishing.
 
 ## فارسی
 
-نسخهٔ ۱٫۰٫۰ ویندوز و اندروید در یک ریلیز عادی منتشر می‌شوند. ویندوز دو بستهٔ نصبی و ZIP پوشه‌ای دارد.
+نسخهٔ ۱٫۰٫۱ ویندوز و اندروید در یک ریلیز عادی منتشر می‌شوند. ویندوز دو بستهٔ نصبی و ZIP پوشه‌ای دارد.
 لینک بعد از بستن برنامه حفظ می‌شود و با محافظت حساب ویندوز ذخیره می‌شود؛ **Forget** آن را پاک می‌کند.
 VPN یا پروکسی از کانفیگ خوانده می‌شود. ظاهر روشن/تیره، کارت‌ها و نمایش تأخیر/ترافیک مرتب‌تر شده‌اند؛
 Gaming و تست HTTPS حفظ شده‌اند. ویندوز هنوز امضای ناشر ندارد. کانفیگ پشتیبان نگه دارید.
