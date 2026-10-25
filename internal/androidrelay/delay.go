@@ -28,8 +28,13 @@ type Streamer interface {
 // response headers. Authentication is completed by the caller before this timer.
 // No system proxy, local target DNS lookup, redirect or direct fallback is used.
 func Measure(ctx context.Context, tunnel Streamer) (time.Duration, error) {
-	return measure(ctx, tunnel, Endpoint, nil)
+	config, err := deviceTLSConfig()
+	if err != nil { return 0, ErrRequest }
+	return measure(ctx, tunnel, Endpoint, config)
 }
+
+// ValidateTLSRoots is used by the native Android acceptance self-test only.
+func ValidateTLSRoots() error { _, err := deviceTLSConfig(); return err }
 
 func measure(parent context.Context, tunnel Streamer, endpoint string, tlsConfig *tls.Config) (time.Duration, error) {
 	ctx, cancel := context.WithTimeout(parent, Timeout)

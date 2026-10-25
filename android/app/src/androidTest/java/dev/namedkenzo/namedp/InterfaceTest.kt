@@ -173,6 +173,13 @@ class InterfaceTest {
   context.getSharedPreferences("namedP-private",0).edit().clear().commit()
   context.getSharedPreferences("namedp-ui",0).edit().clear().commit()
  }
+ @Test fun nativeRelayCanReadAndroidSystemTLSRoots() {
+  val context=InstrumentationRegistry.getInstrumentation().targetContext
+  val process=ProcessBuilder(File(context.applicationInfo.nativeLibraryDir,"libnamedp.so").absolutePath,"--self-test-relay-roots").redirectErrorStream(true).start()
+  assertTrue(process.waitFor(8,java.util.concurrent.TimeUnit.SECONDS))
+  val output=process.inputStream.bufferedReader().readText()
+  assertEquals(output,0,process.exitValue());assertTrue(output,output.contains("relay-roots-ready"))
+ }
  @Test fun relayDelayIsVisibleAndCanBeTestedWithoutStoppingConnectedProfile() {
   val context=InstrumentationRegistry.getInstrumentation().targetContext
   context.getSharedPreferences("namedP-private",0).edit().clear().commit()
