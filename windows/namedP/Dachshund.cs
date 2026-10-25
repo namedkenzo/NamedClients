@@ -29,7 +29,7 @@ public sealed class Dachshund : FrameworkElement
         d.PushTransform(new TranslateTransform((ActualWidth - 420 * scale) / 2, (ActualHeight - 250 * scale) / 2));
         d.PushTransform(new ScaleTransform(scale, scale));
         var coat = B("#AD6338"); var shade = B("#713D2C"); var gold = B("#D59A61");
-        d.DrawEllipse(B("#18302D"), null, new Point(210, 204), 132, 9);
+        d.DrawEllipse(Application.Current.TryFindResource("Soft") as Brush ?? B("#18302D"), null, new Point(210, 204), 132, 9);
         double bounce = State == "connecting" ? Math.Sin(t * 11) * 4 : Math.Sin(t * 2) * 1.5;
         d.PushTransform(new TranslateTransform(0, bounce));
         // A tiny forward/back run while connecting, not a spinning window.

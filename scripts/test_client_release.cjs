@@ -10,6 +10,6 @@ assert.ok(combined.includes('--latest'));
 assert.ok(!combined.includes('--prerelease'));
 for(const p of ['windows','android'])assert.ok(!read(`.github/workflows/${p}.yml`).includes('gh release create'));
 assert.ok(read('android/app/build.gradle.kts').includes('isDebuggable = false'));
-assert.ok(read('.github/workflows/android.yml').includes('signature matches the previously distributed build'));
+assert.ok(read('.github/workflows/android.yml').includes('test "$GITHUB_REF" != refs/heads/main'));
 assert.ok(fs.existsSync('docs/RELEASE-namedp-v'+version+'.md'));
 console.log('One stable release, both clients '+version+', gated by both test pipelines.');

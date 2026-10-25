@@ -71,10 +71,16 @@ jobs:
           signer="$ANDROID_HOME/build-tools/35.0.0/apksigner"
           previous=$("$signer" verify --print-certs previous-apk/*.apk | sed -n 's/^Signer #1 certificate SHA-256 digest: //p')
           current=$("$signer" verify --print-certs "$apk" | sed -n 's/^Signer #1 certificate SHA-256 digest: //p')
-          test -n "$previous" && test "$previous" = "$current"
+          test -n "$previous" && test -n "$current"
+          if [ "$previous" != "$current" ]; then
+            echo '::warning::The legacy APK signing key was not preserved. Candidate UI tests may run, but publication is blocked on main.'
+            test "$GITHUB_REF" != refs/heads/main
+          else
+            echo 'APK signature matches the previously distributed build.'
+          fi
           "$ANDROID_HOME/build-tools/35.0.0/aapt" dump badging "$apk" > apk-manifest.txt
           if rg -q 'application-debuggable' apk-manifest.txt; then echo 'Release APK must not be debuggable'; exit 1; fi
-          echo 'APK signature matches the previously distributed build; release manifest is not debuggable.'
+          echo 'Release manifest is not debuggable; legacy signature continuity is enforced on main.'
       - name: Enable KVM for UI emulator
         run: |
           echo 'KERNEL=="kvm", GROUP="kvm", MODE="0666", OPTIONS+="static_node=kvm"' | sudo tee /etc/udev/rules.d/99-kvm4all.rules

@@ -93,7 +93,7 @@ public partial class MainWindow : Window
     {
         try { fullVpn=ReadMode(Link.Password)=="vpn";ProfileMode.Text=fullVpn?"mode=vpn · Full-device VPN":"mode=proxy · Local SOCKS5"; }
         catch(IOException){ProfileMode.Text="Mode follows the configuration";}
-        Hint.Text = "The profile selects routing automatically. HTTPS relay delay is not raw ICMP or game ping.";
+        if(!connected)Hint.Text = "The profile selects routing automatically. HTTPS relay delay is not raw ICMP or game ping.";
     }
     void PasteLink(object sender, RoutedEventArgs e)
     {
@@ -217,6 +217,7 @@ public partial class MainWindow : Window
         if(closePending)return;
         if(!SaveProfile() && MessageBox.Show(this,"This link could not be saved. Close anyway? Keep a backup before closing.","Link not saved",MessageBoxButton.YesNo,MessageBoxImage.Warning)!=MessageBoxResult.Yes)return;
         closePending=true;
+        Link.IsEnabled=PasteButton.IsEnabled=ForgetButton.IsEnabled=TestButton.IsEnabled=false;
         // Let the first Closing event return before calling Close again, even
         // when disconnected cleanup completes synchronously.
         await System.Windows.Threading.Dispatcher.Yield(DispatcherPriority.Background);
