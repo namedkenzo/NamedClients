@@ -1,6 +1,15 @@
 name: namedP Android
 on:
   workflow_call:
+    secrets:
+      NAMEDP_ANDROID_KEYSTORE_BASE64:
+        required: false
+      NAMEDP_ANDROID_STORE_PASSWORD:
+        required: false
+      NAMEDP_ANDROID_KEY_ALIAS:
+        required: false
+      NAMEDP_ANDROID_KEY_PASSWORD:
+        required: false
   workflow_dispatch:
 permissions:
   contents: read
@@ -43,18 +52,14 @@ jobs:
       - uses: gradle/actions/setup-gradle@v4
         with:
           gradle-version: '8.11.1'
-      - name: Resolve the Android SDK signing-store location
-        run: |
-          gradle -q -p android signingReport > signing-report.txt
-          store=$(sed -n 's/^Store: //p' signing-report.txt | head -1)
-          test -n "$store"
-          echo "NAMEDP_SIGNING_STORE=$store" >> "$GITHUB_ENV"
-          echo "Resolved Gradle signing store: $store"
-      - uses: actions/cache@v4
-        id: signing-cache
-        with:
-          path: ${{ env.NAMEDP_SIGNING_STORE }}
-          key: namedp-android-development-keystore-v2
+      - name: Prepare owner signing identity without public key caches
+        env:
+          GH_TOKEN: ${{ github.token }}
+          NAMEDP_KEYSTORE_BASE64: ${{ secrets.NAMEDP_ANDROID_KEYSTORE_BASE64 }}
+          NAMEDP_STORE_PASSWORD: ${{ secrets.NAMEDP_ANDROID_STORE_PASSWORD }}
+          NAMEDP_KEY_ALIAS: ${{ secrets.NAMEDP_ANDROID_KEY_ALIAS }}
+          NAMEDP_KEY_PASSWORD: ${{ secrets.NAMEDP_ANDROID_KEY_PASSWORD }}
+        run: bash scripts/prepare_android_signing.sh
       - name: Install Android toolchain
         run: sdkmanager 'platforms;android-35' 'build-tools;35.0.0' 'ndk;28.0.13004108'
       - name: Build independent Android engines
@@ -62,25 +67,25 @@ jobs:
           ANDROID_NDK_HOME: ${{ env.ANDROID_HOME }}/ndk/28.0.13004108
         run: bash scripts/build_android_native.sh
       - run: gradle -p android testDebugUnitTest assembleDebug assembleRelease assembleDebugAndroidTest
-      - name: Verify release signing continuity and non-debuggable manifest
+      - name: Verify approved signing identity and non-debuggable manifest
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          gh release download android-v0.2.2-alpha --pattern namedP-android-0.2.2-alpha-debug.apk --dir previous-apk
           apk=android/app/build/outputs/apk/release/app-release.apk
           signer="$ANDROID_HOME/build-tools/35.0.0/apksigner"
-          previous=$("$signer" verify --print-certs previous-apk/*.apk | sed -n 's/^Signer #1 certificate SHA-256 digest: //p')
           current=$("$signer" verify --print-certs "$apk" | sed -n 's/^Signer #1 certificate SHA-256 digest: //p')
-          test -n "$previous" && test -n "$current"
-          if [ "$previous" != "$current" ]; then
-            echo '::warning::The legacy APK signing key was not preserved. Candidate UI tests may run, but publication is blocked on main.'
-            test "$GITHUB_REF" != refs/heads/main
+          test -n "$current"
+          if gh release view namedp-v1.0.0 >/dev/null 2>&1; then
+            gh release download namedp-v1.0.0 --pattern namedP-1.0.0-android.apk --dir previous-apk
+            previous=$("$signer" verify --print-certs previous-apk/*.apk | sed -n 's/^Signer #1 certificate SHA-256 digest: //p')
+            test -n "$previous" && test "$previous" = "$current"
+            echo 'APK signature matches the stable 1.0.0 identity.'
           else
-            echo 'APK signature matches the previously distributed build.'
+            echo 'Owner-approved new 1.0.0 identity. Legacy alpha users must back up profiles and reinstall.'
           fi
           "$ANDROID_HOME/build-tools/35.0.0/aapt" dump badging "$apk" > apk-manifest.txt
           if rg -q 'application-debuggable' apk-manifest.txt; then echo 'Release APK must not be debuggable'; exit 1; fi
-          echo 'Release manifest is not debuggable; legacy signature continuity is enforced on main.'
+          echo 'Release manifest is not debuggable; future upgrades must preserve the stable identity.'
       - name: Enable KVM for UI emulator
         run: |
           echo 'KERNEL=="kvm", GROUP="kvm", MODE="0666", OPTIONS+="static_node=kvm"' | sudo tee /etc/udev/rules.d/99-kvm4all.rules
@@ -102,6 +107,8 @@ jobs:
             adb pull /sdcard/Pictures/namedP-tests/preview-dark-connected-preview.png dist/android/previews/dark-connected-preview.png
             adb pull /sdcard/Pictures/namedP-tests/preview-details.png dist/android/previews/details.png
             node scripts/check_png.cjs dist/android/previews
+            adb install -r android/app/build/outputs/apk/debug/app-debug.apk
+            adb install -r android/app/build/outputs/apk/androidTest/debug/app-debug-androidTest.apk
             adb shell am instrument -w -r -e upgrade prepare -e class dev.namedkenzo.namedp.InterfaceTest#releaseUpgradePreservesEncryptedProfiles dev.namedkenzo.namedp.test/androidx.test.runner.AndroidJUnitRunner > upgrade-prepare.txt
             cat upgrade-prepare.txt
             if ! rg -q 'OK \(1 test\)' upgrade-prepare.txt; then exit 1; fi

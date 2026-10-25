@@ -15,9 +15,17 @@ android {
     compileOptions { sourceCompatibility = JavaVersion.VERSION_17; targetCompatibility = JavaVersion.VERSION_17 }
     kotlinOptions { jvmTarget = "17" }
     packaging { jniLibs { useLegacyPackaging = true; keepDebugSymbols += "**/*.so" } }
-    // Preserve the previously distributed APK identity for in-place upgrades.
-    // This is a non-debuggable release, but still uses the existing development
-    // certificate. Owner-controlled production signing is a separate migration.
+    signingConfigs.getByName("debug") {
+        System.getenv("NAMEDP_SIGNING_STORE")?.let {
+            storeFile = file(it)
+            storeType = "PKCS12"
+            storePassword = System.getenv("NAMEDP_STORE_PASSWORD")
+            keyAlias = System.getenv("NAMEDP_KEY_ALIAS")
+            keyPassword = System.getenv("NAMEDP_KEY_PASSWORD")
+        }
+    }
+    // CI supplies the owner identity to both variants so instrumentation can
+    // verify an in-place debug-fixture -> non-debuggable release upgrade.
     buildTypes { release { isMinifyEnabled = false; isDebuggable = false; signingConfig = signingConfigs.getByName("debug") } }
 }
 dependencies {

@@ -41,15 +41,24 @@ not game ping and Gaming does not promise a lower RTT.
 
 ## Updating and verification
 
-Close old Windows copies before updating. Android is a non-debuggable release APK
-using the **same legacy development signing identity** as 0.2.2-alpha, so an
-in-place upgrade can preserve Android Keystore profiles. CI verifies the prior
-APK certificate and an emulator upgrade with a saved encrypted profile. Do not
-uninstall Android or clear its data just to update: doing so removes saved profiles.
+Close old Windows copies before updating.
+
+**Android alpha → 1.0.0 requires a one-time reinstall.** The earlier workflow cached
+the wrong keystore path, so the legacy private signing key could not be recovered.
+The owner explicitly approved a new identity. Before uninstalling the old app,
+open each profile's Details, Copy its complete link and keep it somewhere private.
+Then uninstall the alpha, install the new APK and Paste your links. Uninstalling
+removes the old Keystore profiles; they do not migrate automatically.
+
+The new APK is non-debuggable. Future builds must match the stable 1.0.0 certificate
+and use owner signing secrets; missing identity fails closed rather than silently
+creating another incompatible update. No private key is cached publicly. A recovery
+backup is encrypted to the owner's private workspace. See [signing](ANDROID_SIGNING.md).
+The emulator also verifies a profile-preserving upgrade between builds sharing the new identity.
 
 This is a stable **GitHub release**, not a security audit or Play Store release.
 Windows Setup/app still lack publisher Authenticode signing; SmartScreen may warn.
-Android has not migrated to a new owner-controlled production certificate.
+Android is independently signed for APK distribution, not a Play Store release.
 Actual device, network and VPS behavior still varies. Keep backup configuration links.
 
 Automated gates cover Go race/protocol tests, WPF profile restart/DPAPI and theme
@@ -67,6 +76,7 @@ installer install/uninstall, Android unit/emulator tests and signing continuity.
 - اتصال از خود `mode` کانفیگ پیروی می‌کند. Gaming، تست تأخیر HTTPS و انیمیشن‌های
   سبک حفظ شده‌اند؛ دکمهٔ اتصال اندروید هنگام اسکرول هم در دسترس است.
 - ویندوز هر دو بستهٔ نصبی EXE و ZIP پرتابل دارد. پیش از آپدیت برنامه را ببندید.
-- APK اندروید دیباگ‌پذیر نیست و با همان امضای توسعهٔ قبلی ساخته شده تا آپدیت
-  روی نسخهٔ قبلی کانفیگ‌ها را حفظ کند؛ اندروید را حذف نکنید و داده‌هایش را پاک نکنید.
+- APK اندروید دیباگ‌پذیر نیست و با تأیید شما امضای جدید دارد. پیش از حذف آلفا،
+  لینک همهٔ کانفیگ‌ها را از جزئیات Copy و جای امن ذخیره کنید؛ سپس آلفا را حذف،
+  نسخهٔ جدید را نصب و لینک‌ها را Paste کنید. کانفیگ‌ها خودکار منتقل نمی‌شوند.
   ویندوز هنوز امضای ناشر ندارد. عادی‌شدن ریلیز به معنی تضمین امنیت یا نبود هرگونه باگ نیست.

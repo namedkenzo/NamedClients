@@ -69,6 +69,7 @@ public partial class MainWindow : Window
         string[] names = ["Bg", "Surface", "Text", "Muted", "Line", "Accent", "Soft", "AccentInk", "Danger"];
         for (int i = 0; i < names.Length; i++) Application.Current.Resources[names[i]] = new SolidColorBrush((Color)ColorConverter.ConvertFromString(colors[i]));
         Application.Current.Resources["HeroBrush"] = new LinearGradientBrush((Color)ColorConverter.ConvertFromString(dark?"#203B30":"#E4F0E7"),(Color)ColorConverter.ConvertFromString(dark?"#152420":"#F4F6F1"),60);
+        Dog?.InvalidateVisual();
         if (ProfileMode != null) UpdateModes();
     }
     void GamingChanged(object sender, RoutedEventArgs e)

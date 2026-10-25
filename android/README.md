@@ -52,13 +52,16 @@ Connected validates the tunnel and local startup, not access to every website.
 
 ## Updating and signing
 
-Install the APK **over the previous app**; do not uninstall or clear data if you need saved profiles.
-Version code 8 uses the same legacy development signing identity as 0.2.2-alpha,
-with a **non-debuggable release** manifest. CI verifies the old/new certificate digest and
-an emulator upgrade that preserves an encrypted profile. A missing signing cache fails the build
-rather than generating a new incompatible identity.
+**Alpha → 1.0.0 requires a one-time reinstall with a new signing identity**, explicitly approved
+by the owner after the old workflow failed to preserve its private key.
+First copy every complete profile link from Details and keep the links somewhere private.
+Only then uninstall the alpha, install 1.0.0 and Paste the links. Uninstalling deletes saved Keystore profiles.
+Version code 8 has a **non-debuggable release** manifest. Future APKs must match the stable identity;
+missing signing secrets fail the build rather than generating another incompatible update.
+The emulator checks upgrades with a saved encrypted profile between builds sharing the new identity.
+No private signing material is placed in public Actions caches. See [signing and recovery](../docs/ANDROID_SIGNING.md).
 
-This is a stable GitHub release, not a Play Store distribution or new owner-controlled production signing setup.
+This is a stable GitHub release, not a Play Store distribution or security audit.
 Keep backup links. Device/VPS throughput, leaks and vendor lifecycle behavior still need real-world validation.
 Windows and Android binaries now live in one release; the web panel is unaffected.
 
@@ -84,5 +87,6 @@ and cannot update an APK signed with a different key.
 لینک Config پنل ← چسباندن کانفیگ ← اتصال. **+** برای ورود دستی است و نام اختیاری است.
 حالت از خود کانفیگ خوانده می‌شود. تست تأخیر HTTPS و Gaming اختیاری مثل قبل هستند.
 
-APK دیباگ‌پذیر نیست و با همان امضای توسعهٔ قبلی ساخته می‌شود تا روی نسخهٔ قبلی نصب شود و
-کانفیگ‌ها باقی بمانند. برنامه را حذف نکنید و داده‌های آن را پاک نکنید. این نسخهٔ Play Store نیست.
+APK دیباگ‌پذیر نیست و با تأیید مالک امضای جدید دارد. قبل از حذف آلفا، لینک همهٔ کانفیگ‌ها را
+از جزئیات Copy و جای خصوصی ذخیره کنید؛ سپس آلفا را حذف، نسخهٔ جدید را نصب و لینک‌ها را Paste کنید.
+کانفیگ‌ها خودکار منتقل نمی‌شوند. این نسخهٔ Play Store نیست.

@@ -11,7 +11,7 @@ Both platforms now share one **1.0.0 stable GitHub release**, independently vers
 | --- | --- | --- |
 | [Setup EXE](https://github.com/namedkenzo/NamedClients/releases/download/namedp-v1.0.0/namedP-1.0.0-windows-x64-setup.exe) | Windows 10/11 x64 | Choose an install folder and shortcuts |
 | [Portable ZIP](https://github.com/namedkenzo/NamedClients/releases/download/namedp-v1.0.0/namedP-1.0.0-windows-x64.zip) | Windows 10/11 x64 | Extract **all files**, run `namedP.exe` |
-| [Android APK](https://github.com/namedkenzo/NamedClients/releases/download/namedp-v1.0.0/namedP-1.0.0-android.apk) | Android 8+, arm64 | Install over your existing namedP app |
+| [Android APK](https://github.com/namedkenzo/NamedClients/releases/download/namedp-v1.0.0/namedP-1.0.0-android.apk) | Android 8+, arm64 | Back up alpha profiles before reinstalling |
 
 ## Connect, without the clutter
 
@@ -45,9 +45,12 @@ Screenshots are credential-free interface previews, not evidence of a live VPN c
 Close old Windows copies, then run Setup or extract the new ZIP into a clean folder.
 Administrator access is required for the raw ICMP socket and Wintun.
 
-Install the Android APK **over the old app**: do not uninstall or clear app data if you want to retain profiles.
-The non-debuggable release APK preserves the previous development signing identity; CI verifies certificate
-continuity and an upgrade retaining an encrypted profile. It is not a Play Store build.
+**Android alpha → 1.0.0 needs a one-time reinstall.** The old signing key was not preserved by the earlier build script.
+Before uninstalling, open each profile → Copy and save its complete link somewhere private.
+Then uninstall the alpha, install 1.0.0 and Paste your links. Uninstalling erases Keystore profiles.
+The new non-debuggable release uses a new signing identity, with the owner's approval.
+Future updates must match this identity; the private key is not placed in public Actions caches.
+See [signing and recovery](docs/ANDROID_SIGNING.md). This is not a Play Store build.
 Windows Setup/app still lack publisher Authenticode signing; SmartScreen may warn.
 A stable GitHub label is not a security audit or a promise of bug-free operation.
 
