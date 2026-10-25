@@ -2,7 +2,7 @@
 
 **خانهٔ کلاینت‌های namedP برای اتصال به سرور namedICMP.**
 
-[English](README.md) · [دانلود ویندوز](https://github.com/namedkenzo/NamedClients/releases) · [پنل و سرور](https://github.com/namedkenzo/NamedICMP)
+[English](README.md) · [دانلود ویندوز](https://github.com/namedkenzo/NamedClients/releases) · [وب‌پنل](https://github.com/namedkenzo/NamedICMP)
 
 | پلتفرم | وضعیت | محل کد |
 | --- | --- | --- |
@@ -38,5 +38,5 @@
 - [کلاینت خط فرمان اصلی PingTunnel](https://github.com/esrrhs/pingtunnel/releases)
 - [کلاینت گرافیکی جامعهٔ PingTunnel برای اندروید و دسکتاپ](https://github.com/itismoej/pingtunnel-client/releases)
 
-این مخزن فقط برای کلاینت‌هاست. نصب‌کنندهٔ سرور و وب‌پنل در
+این مخزن فقط برای کلاینت‌هاست. نصب‌کنندهٔ وب‌پنل در
 [NamedICMP](https://github.com/namedkenzo/NamedICMP) نگهداری می‌شوند.

@@ -2,7 +2,7 @@
 
 **The home of namedP clients for namedICMP.**
 
-[فارسی](README.fa.md) · [Windows downloads](https://github.com/namedkenzo/NamedClients/releases) · [Server & web panel](https://github.com/namedkenzo/NamedICMP) · [MIT license](LICENSE)
+[فارسی](README.fa.md) · [Windows downloads](https://github.com/namedkenzo/NamedClients/releases) · [Web panel](https://github.com/namedkenzo/NamedICMP) · [MIT license](LICENSE)
 
 | Platform | Status | Source |
 | --- | --- | --- |
@@ -42,7 +42,7 @@ internal/wire/       Compatible protocol codec and encryption
 internal/reliable/   Ordered, deduplicated TCP transport
 ```
 
-Client versions and releases are independent of the server. There is no web panel, server executable, Linux installer or server state database in this repository. Those live in [NamedICMP](https://github.com/namedkenzo/NamedICMP).
+Client versions and releases are independent of the web panel. This repository contains client apps only; the web panel, its managed tunneling core, Linux installer and panel data belong in [NamedICMP](https://github.com/namedkenzo/NamedICMP).
 
 ## Other PingTunnel clients
 

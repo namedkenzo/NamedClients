@@ -7,7 +7,7 @@
 - Preserves literal and percent-encoded Base64 +, / and = characters. Missing keys give actionable English/Persian messages without printing credentials.
 - Imports are stored encrypted. Re-importing an identical canonical URI selects its existing profile. Import never starts a connection or reports a fake Connected state.
 - Regression tests cover clipboard import, manual numeric/encrypted entry, aliases, missing/duplicate credentials, Persian digits and process-facing canonical URIs.
-- Windows, the server and the web panel are unchanged.
+- Windows, the web panel are unchanged.
 
 Still a **debug-signed alpha** for Android 8+ (arm64 phones / x86_64 emulators).
 Build/unit/emulator tests do not establish real-device/VPS connectivity, speed or

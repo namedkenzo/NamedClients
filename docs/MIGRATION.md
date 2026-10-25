@@ -1,11 +1,11 @@
 # Repository split
 
-The clients are maintained at **namedkenzo/NamedClients**; the web panel and Linux server remain at **namedkenzo/NamedICMP**. Protocol compatibility, not repository layout, connects the projects.
+The clients are maintained at **namedkenzo/NamedClients**; the web panel and its managed tunneling core remain at **namedkenzo/NamedICMP**. Protocol compatibility, not repository layout, connects the projects.
 
 ## Windows
 
-- Original UI, mascot, VPN guardian and client engine extracted from server release 0.3.0.
-- Standalone `namedp` Go module. No server/panel/store dependency or server compression dependency.
+- Original UI, mascot, VPN guardian and client engine extracted from panel release 0.3.0.
+- Standalone `namedp` Go module. No web panel/store dependency or server compression dependency.
 - Windows source remains version 0.1.0-alpha. Future releases use this repository.
 - Existing releases in the old repository remain historical downloads; they are not deleted or silently replaced.
 

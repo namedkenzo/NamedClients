@@ -22,6 +22,6 @@ Android has not been implemented or built and is not included in this release.
 
 ## فارسی
 
-کلاینت ویندوز namedP به مخزن مستقل NamedClients منتقل شد. پنل و هسته سرور
+کلاینت ویندوز namedP به مخزن مستقل NamedClients منتقل شد. وب‌پنل و هستهٔ مدیریت‌شدهٔ آن
 در NamedICMP باقی می‌مانند. ZIP را کامل استخراج و برنامه را با دسترسی مدیر
 اجرا کنید. نسخه همچنان آلفاست؛ برنامه یا APK اندروید در این ریلیز وجود ندارد.
