@@ -1,0 +1,15 @@
+'use strict';
+const fs=require('node:fs'),assert=require('node:assert/strict');
+const read=p=>fs.readFileSync(p,'utf8');
+const version=read('windows/namedP/VERSION').trim();
+assert.match(version,/^\d+\.\d+\.\d+$/);
+assert.equal(read('android/app/build.gradle.kts').match(/versionName = "([^"]+)"/)[1],version);
+const combined=read('.github/workflows/clients.yml');
+assert.ok(combined.includes('needs: [windows, android]'));
+assert.ok(combined.includes('--latest'));
+assert.ok(!combined.includes('--prerelease'));
+for(const p of ['windows','android'])assert.ok(!read(`.github/workflows/${p}.yml`).includes('gh release create'));
+assert.ok(read('android/app/build.gradle.kts').includes('isDebuggable = false'));
+assert.ok(read('.github/workflows/android.yml').includes('signature matches the previously distributed build'));
+assert.ok(fs.existsSync('docs/RELEASE-namedp-v'+version+'.md'));
+console.log('One stable release, both clients '+version+', gated by both test pipelines.');

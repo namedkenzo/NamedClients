@@ -44,7 +44,7 @@ class MainActivity:Activity() {
     private lateinit var root:LinearLayout
     private var traffic:TextView?=null
     private var elapsed:TextView?=null
-    private var bg=0;private var surface=0;private var ink=0;private var muted=0;private var accent=0;private var soft=0
+    private var bg=0;private var surface=0;private var ink=0;private var muted=0;private var accent=0;private var soft=0;private var line=0
     private var night=false
     private val fa get()=prefs.getString("language",Locale.getDefault().language)=="fa"
     private fun tr(en:String,faText:String)=if(fa)faText else en
@@ -67,14 +67,16 @@ class MainActivity:Activity() {
     override fun onPause(){handler.removeCallbacks(tick);super.onPause()}
     override fun onDestroy(){cancelRelayTest();super.onDestroy()}
     private fun text(value:String,size:Float=14f,color:Int=ink,bold:Boolean=false):TextView=TextView(this).apply {
-        this.text=value;textSize=size;setTextColor(color);includeFontPadding=false
+        this.text=value;textSize=size;setTextColor(color);includeFontPadding=false;setLineSpacing(dp(3).toFloat(),1f)
         if(bold)typeface=Typeface.create("sans-serif-medium",Typeface.NORMAL)
         layoutParams=LinearLayout.LayoutParams(-1,-2)
     }
     private fun gap(parent:LinearLayout,height:Int){parent.addView(Space(this),LinearLayout.LayoutParams(1,dp(height)))}
-    private fun rounded(color:Int,radius:Int=20)=GradientDrawable().apply {setColor(color);cornerRadius=dp(radius).toFloat()}
+    private fun rounded(color:Int,radius:Int=20,outlined:Boolean=false)=GradientDrawable().apply {setColor(color);cornerRadius=dp(radius).toFloat();if(outlined)setStroke(dp(1),line)}
+    private fun glyph(id:String,color:Int=accent,size:Int=18)=GlyphDrawable(id,color,dp(size))
+    private fun chip(label:String,color:Int=accent)=text(label,10f,color,true).apply{layoutParams=LinearLayout.LayoutParams(-2,-2);background=rounded(soft,12);setPadding(dp(10),dp(6),dp(10),dp(6))}
     private fun button(label:String,primary:Boolean=false,action:()->Unit):Button=Button(this).apply {
-        text=label;isAllCaps=false;textSize=15f;setTextColor(if(primary)bg else ink);typeface=Typeface.create("sans-serif-medium",Typeface.NORMAL)
+        text=label;isAllCaps=false;textSize=14f;setTextColor(if(primary){if(night)Color.parseColor("#102A20")else Color.WHITE}else ink);typeface=Typeface.create("sans-serif-medium",Typeface.NORMAL)
         background=RippleDrawable(ColorStateList.valueOf(if(night)0x22ffffff else 0x16000000),rounded(if(primary)accent else soft),null)
         minHeight=0;minimumHeight=0;minWidth=0;minimumWidth=0;setPadding(dp(12),dp(9),dp(12),dp(9))
         layoutParams=LinearLayout.LayoutParams(-1,dp(52));setOnClickListener{action()}
@@ -86,12 +88,12 @@ class MainActivity:Activity() {
         }
     }
     private fun row():LinearLayout=LinearLayout(this).apply {orientation=LinearLayout.HORIZONTAL;gravity=Gravity.CENTER_VERTICAL;layoutParams=LinearLayout.LayoutParams(-1,-2)}
-    private fun card():LinearLayout=LinearLayout(this).apply {orientation=LinearLayout.VERTICAL;background=rounded(surface);setPadding(dp(18),dp(17),dp(18),dp(17));layoutParams=LinearLayout.LayoutParams(-1,-2)}
+    private fun card():LinearLayout=LinearLayout(this).apply {orientation=LinearLayout.VERTICAL;background=rounded(surface,22,true);setPadding(dp(18),dp(17),dp(18),dp(17));layoutParams=LinearLayout.LayoutParams(-1,-2)}
     private fun render(){
         night=forceNight ?: when(prefs.getString("theme","system")){"dark"->true;"light"->false;else->resources.configuration.uiMode and Configuration.UI_MODE_NIGHT_MASK==Configuration.UI_MODE_NIGHT_YES}
-        bg=Color.parseColor(if(night)"#101B19" else "#F5F5EF");surface=Color.parseColor(if(night)"#192824" else "#FFFFFF")
-        ink=Color.parseColor(if(night)"#F0F5EC" else "#173A31");muted=Color.parseColor(if(night)"#9BB1A7" else "#6B8076")
-        accent=Color.parseColor(if(night)"#6DD4AE" else "#258C78");soft=Color.parseColor(if(night)"#263C32" else "#E2EEE6")
+        bg=Color.parseColor(if(night)"#0D1917" else "#F4F6F1");surface=Color.parseColor(if(night)"#152420" else "#FFFFFF")
+        ink=Color.parseColor(if(night)"#EDF6F1" else "#162F26");muted=Color.parseColor(if(night)"#9AB4A8" else "#5C7369")
+        accent=Color.parseColor(if(night)"#73DFBE" else "#166C56");soft=Color.parseColor(if(night)"#1B352B" else "#E7F0EA");line=Color.parseColor(if(night)"#2A4037" else "#D8E5DD")
         window.statusBarColor=bg;window.navigationBarColor=bg
         @Suppress("DEPRECATION")
         window.decorView.systemUiVisibility=if(night)0 else View.SYSTEM_UI_FLAG_LIGHT_STATUS_BAR or View.SYSTEM_UI_FLAG_LIGHT_NAVIGATION_BAR
@@ -111,7 +113,8 @@ class MainActivity:Activity() {
             header.addView(text(selected()?.takeIf{it.id==detailId}?.name ?: tr("New connection","اتصال جدید"),20f,ink,true).apply{layoutParams=LinearLayout.LayoutParams(0,-2,1f);maxLines=1;ellipsize=android.text.TextUtils.TruncateAt.END})
             header.addView(button("⧉"){copyDetail()}.apply{tag="copy-profile";layoutParams=LinearLayout.LayoutParams(dp(42),dp(42));contentDescription=tr("Copy configuration","کپی کانفیگ")})
         }else{
-            header.addView(LinearLayout(this).apply {orientation=LinearLayout.VERTICAL;layoutParams=LinearLayout.LayoutParams(0,-2,1f);addView(text("namedP",28f,ink,true));addView(text(tr("YOUR LITTLE CONNECTION COMPANION","همراه کوچک اتصال شما"),9f,muted))})
+            header.addView(ImageView(this).apply{setImageDrawable(glyph("paw",accent,24));background=rounded(soft,15);setPadding(dp(10),dp(10),dp(10),dp(10));importantForAccessibility=View.IMPORTANT_FOR_ACCESSIBILITY_NO;layoutParams=LinearLayout.LayoutParams(dp(44),dp(44)).apply{marginEnd=dp(11)}})
+            header.addView(LinearLayout(this).apply {orientation=LinearLayout.VERTICAL;layoutParams=LinearLayout.LayoutParams(0,-2,1f);addView(text("namedP",27f,ink,true));gap(this,3);addView(text(tr("Your little connection companion","همراه کوچک اتصال شما"),10f,muted))})
             header.addView(button("◐"){themePicker()}.apply {layoutParams=LinearLayout.LayoutParams(dp(42),dp(42));contentDescription=tr("Choose color theme","انتخاب تم")})
         }
         root.addView(header);gap(root,12)
@@ -125,41 +128,78 @@ class MainActivity:Activity() {
                 addView(button(if(active())tr("Disconnect","قطع اتصال")else tr("Connect","اتصال"),true){if(active())toggle()else if(commitDetail()!=null)toggle()}.apply{tag="connect";layoutParams=LinearLayout.LayoutParams(0,dp(52),2f).apply{marginStart=dp(8)}})
             });updateDetailStatus();return
         }
-        val tabs=row().apply {background=rounded(surface,24);setPadding(dp(5),dp(5),dp(5),dp(5))}
+        if(page=="home"){
+            root.addView(button(if(active())tr("Disconnect","قطع اتصال")else tr("Connect →","اتصال ←"),true){toggle()}.apply{tag="connect";isEnabled=preview==null && !locked;layoutParams=LinearLayout.LayoutParams(-1,dp(54)).apply{bottomMargin=dp(10)}})
+        }
+        val tabs=row().apply {background=rounded(surface,24,true);setPadding(dp(5),dp(5),dp(5),dp(5))}
         for((id,en,local)in listOf(Triple("home","Home","خانه"),Triple("profiles","Connections","اتصال‌ها"),Triple("settings","Settings","تنظیمات"))){
-            tabs.addView(button(tr(en,local)){page=id;render()}.apply {tag="tab-"+id;layoutParams=LinearLayout.LayoutParams(0,dp(44),1f);textSize=12f;background=rounded(if(page==id)soft else surface,18);setTextColor(if(page==id)accent else muted)})
+            tabs.addView(button(tr(en,local)){page=id;render()}.apply {tag="tab-"+id;layoutParams=LinearLayout.LayoutParams(0,dp(54),1f);textSize=11f;background=rounded(if(page==id)soft else surface,18);setTextColor(if(page==id)accent else muted);setPadding(dp(4),dp(5),dp(4),dp(4));setCompoundDrawablesWithIntrinsicBounds(null,glyph(id,if(page==id)accent else muted,17),null,null);compoundDrawablePadding=dp(3)})
         };root.addView(tabs)
     }
     private fun home(parent:LinearLayout){
         val state=snapshot()
-        if(preview!=null){parent.addView(text("INTERFACE PREVIEW · NOT A LIVE TUNNEL",10f,accent,true));gap(parent,4)}
-        val stage=FrameLayout(this).apply {layoutParams=LinearLayout.LayoutParams(-1,dp(178))}
-        stage.addView(View(this).apply {background=GradientDrawable().apply {shape=GradientDrawable.OVAL;setColor(soft)}},FrameLayout.LayoutParams(dp(154),dp(154),Gravity.CENTER))
-        stage.addView(DachshundView(this).apply {night=this@MainActivity.night;this.state=state.state},FrameLayout.LayoutParams(-1,dp(174),Gravity.CENTER))
-        parent.addView(stage)
-        parent.addView(text(when(state.state){"connected"->tr("You're in good company.","با همراهت متصل شدی.");"connecting"->tr("Finding your way through…","در حال برقراری اتصال…");else->tr("A calmer way to connect.","راهی آرام‌تر برای اتصال.")},23f,ink,true).apply{gravity=Gravity.CENTER})
-        gap(parent,9)
-        parent.addView(text(when(state.state){"connected"->"●  "+tr("Connected","متصل");"connecting"->"◌  "+tr("Connecting","در حال اتصال");"error"->tr("Connection needs attention","اتصال نیاز به بررسی دارد");else->tr("Ready when you are","آمادهٔ اتصال")},12f,if(active())accent else muted).apply{gravity=Gravity.CENTER})
-        gap(parent,18)
+        if(preview!=null){parent.addView(text("INTERFACE PREVIEW · NOT A LIVE TUNNEL",10f,accent,true));gap(parent,8)}
+        val hero=card().apply{
+            tag="connection-hero"
+            background=GradientDrawable(GradientDrawable.Orientation.TL_BR,intArrayOf(Color.parseColor(if(night)"#203B30"else"#E4F0E7"),surface)).apply{cornerRadius=dp(26).toFloat();setStroke(dp(1),line)}
+            addView(row().apply{
+                addView(text(tr("A LITTLE COMPANION. A PRIVATE CONNECTION.","همراهی کوچک؛ اتصالی خصوصی."),9f,muted,true).apply{layoutParams=LinearLayout.LayoutParams(0,-2,1f)})
+                addView(text("● ICMP",9f,muted))
+            })
+        }
+        val stage=FrameLayout(this).apply {layoutParams=LinearLayout.LayoutParams(-1,dp(168))}
+        stage.addView(View(this).apply {background=GradientDrawable().apply {shape=GradientDrawable.OVAL;setColor(Color.TRANSPARENT);setStroke(dp(1),line)}},FrameLayout.LayoutParams(dp(152),dp(152),Gravity.CENTER))
+        stage.addView(DachshundView(this).apply {night=this@MainActivity.night;this.state=state.state},FrameLayout.LayoutParams(-1,dp(168),Gravity.CENTER))
+        hero.addView(stage)
+        hero.addView(chip(when(state.state){"connected"->"●  "+tr("Connected","متصل");"connecting"->"◌  "+tr("Connecting","در حال اتصال");"error"->tr("Needs attention","نیاز به بررسی");else->tr("Ready when you are","آمادهٔ اتصال")},if(active())accent else muted).apply{tag="connection-status";layoutParams=LinearLayout.LayoutParams(-2,-2).apply{gravity=Gravity.CENTER_HORIZONTAL}})
+        gap(hero,13)
+        hero.addView(text(when(state.state){"connected"->tr("You're in good company.","با همراهت متصل شدی.");"connecting"->tr("Finding your way through…","در حال برقراری اتصال…");else->tr("A calmer way to connect.","راهی آرام‌تر برای اتصال.")},22f,ink,true).apply{gravity=Gravity.CENTER})
+        gap(hero,7);hero.addView(text(tr("Your profile. Your route. One tap.","کانفیگ شما؛ مسیر شما؛ یک لمس."),11f,muted).apply{gravity=Gravity.CENTER})
+        parent.addView(hero);gap(parent,14)
         val profile=selected()
         parent.addView(card().apply{
-            tag="profile-card";addView(text(tr("CONNECTION","اتصال")+" · "+modeLabel(profile?.mode ?: "vpn"),9f,muted,true));gap(this,7)
-            addView(text(if(preview!=null)"Demo profile" else profile?.name ?: tr("Add your first connection","اولین اتصال را اضافه کنید"),16f,ink,true));gap(this,4)
-            addView(text(if(preview!=null)"demo.namedp.example" else profile?.host ?: tr("Paste a link exported by your panel","لینک خروجی پنل را وارد کنید"),12f,muted))
+            tag="profile-card"
+            addView(row().apply{
+                addView(text(tr("CONNECTION","اتصال"),9f,muted,true).apply{layoutParams=LinearLayout.LayoutParams(0,-2,1f)})
+                addView(chip(modeLabel(profile?.mode ?: "vpn")))
+            });gap(this,8)
+            addView(row().apply{
+                addView(LinearLayout(this@MainActivity).apply{
+                    orientation=LinearLayout.VERTICAL;layoutParams=LinearLayout.LayoutParams(0,-2,1f)
+                    addView(text(if(preview!=null)"Demo profile" else profile?.name ?: tr("Add your first connection","اولین اتصال را اضافه کنید"),16f,ink,true).apply{maxLines=1;ellipsize=android.text.TextUtils.TruncateAt.END})
+                    gap(this,5);addView(text(if(preview!=null)"demo.namedp.example" else profile?.host ?: tr("Paste a link from your panel","لینک پنل را وارد کنید"),12f,muted).apply{maxLines=1;ellipsize=android.text.TextUtils.TruncateAt.END})
+                })
+                addView(text(if(fa)"‹"else"›",25f,muted).apply{layoutParams=LinearLayout.LayoutParams(-2,-2).apply{marginStart=dp(12)}})
+            })
+            contentDescription=tr("Connection details","جزئیات اتصال");isFocusable=true
             setOnClickListener{if(profile==null){page="profiles";render()}else openDetails(profile)}
-        });gap(parent,12)
+        });gap(parent,10)
         importButtons(parent);gap(parent,10)
-        if(state.state=="error") {parent.addView(text(state.message,12f,Color.parseColor(if(night)"#F2AE9D" else "#A54832")));gap(parent,8)}
-        parent.addView(button(if(active())tr("Disconnect","قطع اتصال")else tr("Connect →","اتصال ←"),true){toggle()}.apply{tag="connect";isEnabled=preview==null && !locked})
-        gap(parent,13)
-        val stats=row();traffic=text("↑ ${bytes(state.upload)}     ↓ ${bytes(state.download)}",12f,muted).apply {layoutParams=LinearLayout.LayoutParams(0,-2,1f)}
-        elapsed=text("00:00",12f,muted).apply{layoutParams=LinearLayout.LayoutParams(-2,-2)};stats.addView(traffic);stats.addView(elapsed);parent.addView(stats)
-        gap(parent,10)
-        parent.addView(row().apply{
-            addView(text(relayCaption(profile),12f,muted).apply{tag="home-relay-delay";layoutParams=LinearLayout.LayoutParams(0,-2,1f);accessibilityLiveRegion=View.ACCESSIBILITY_LIVE_REGION_POLITE})
-            addView(button(if(testing)tr("Testing…","در حال تست…")else tr("Test delay","تست تأخیر")){selected()?.let{startRelayTest(it)}}.apply{tag="home-test-delay";layoutParams=LinearLayout.LayoutParams(dp(112),dp(40));textSize=12f;isEnabled=profile!=null && !testing && state.state!="connecting" && preview==null})
+        if(state.state=="error") {parent.addView(text(state.message,12f,Color.parseColor(if(night)"#F3B7A5" else "#A33B2A")).apply{background=rounded(soft,12);setPadding(dp(12),dp(10),dp(12),dp(10))});gap(parent,10)}
+        parent.addView(card().apply{
+            addView(row().apply{
+                addView(LinearLayout(this@MainActivity).apply{
+                    orientation=LinearLayout.VERTICAL;layoutParams=LinearLayout.LayoutParams(0,-2,1f)
+                    addView(text(tr("TRANSFERRED","ترافیک"),9f,muted,true));gap(this,6)
+                    traffic=text("↑ ${bytes(state.upload)}     ↓ ${bytes(state.download)}",12f,ink).apply{textDirection=View.TEXT_DIRECTION_LTR};addView(traffic)
+                })
+                addView(LinearLayout(this@MainActivity).apply{
+                    orientation=LinearLayout.VERTICAL;gravity=Gravity.END;layoutParams=LinearLayout.LayoutParams(-2,-2)
+                    addView(text(tr("SESSION","مدت اتصال"),9f,muted,true).apply{gravity=Gravity.END});gap(this,6)
+                    elapsed=text("00:00",12f,ink).apply{gravity=Gravity.END};addView(elapsed)
+                })
+            })
+            gap(this,14);addView(View(this@MainActivity).apply{setBackgroundColor(line)},LinearLayout.LayoutParams(-1,dp(1)));gap(this,12)
+            addView(row().apply{
+                addView(LinearLayout(this@MainActivity).apply{
+                    orientation=LinearLayout.VERTICAL;layoutParams=LinearLayout.LayoutParams(0,-2,1f)
+                    addView(text(tr("RELAY DELAY","تأخیر مسیر"),9f,muted,true));gap(this,5)
+                    addView(text(relayCaption(profile),12f,ink).apply{tag="home-relay-delay";accessibilityLiveRegion=View.ACCESSIBILITY_LIVE_REGION_POLITE})
+                })
+                addView(button(if(testing)tr("Testing…","در حال تست…")else tr("Test delay","تست تأخیر")){selected()?.let{startRelayTest(it)}}.apply{tag="home-test-delay";layoutParams=LinearLayout.LayoutParams(dp(112),dp(42));textSize=12f;isEnabled=profile!=null && !testing && state.state!="connecting" && preview==null})
+            })
         })
-        gap(parent,14);parent.addView(text(if(profile?.mode!="proxy")tr("Mode follows this configuration. TCP + UDP through Android VPN.","حالت اتصال از همین کانفیگ خوانده می‌شود؛ TCP و UDP از VPN اندروید.")else tr("Configure apps to use SOCKS5 on 127.0.0.1:${profile.port}.","برنامه‌ها را روی SOCKS5 به آدرس 127.0.0.1:${profile.port} تنظیم کنید."),11f,muted).apply{gravity=Gravity.CENTER})
+        gap(parent,12);parent.addView(text(if(profile?.mode!="proxy")tr("Routing follows your configuration · TCP + UDP","حالت از کانفیگ خوانده می‌شود · TCP + UDP")else tr("Local SOCKS5 · 127.0.0.1:${profile.port}","SOCKS5 محلی · 127.0.0.1:${profile.port}"),10f,muted).apply{gravity=Gravity.CENTER})
     }
     private fun profilesPage(parent:LinearLayout){
         parent.addView(text(tr("Your connections","اتصال‌های شما"),24f,ink,true));gap(parent,7)
@@ -167,7 +207,11 @@ class MainActivity:Activity() {
         importButtons(parent);gap(parent,16)
         profiles.forEach { profile ->
             parent.addView(card().apply{
-                addView(text((if(selected()?.id==profile.id)"●  " else "○  ")+profile.name,16f,ink,true));gap(this,5);addView(text(profile.host+" · "+modeLabel(profile.mode),12f,muted));gap(this,5);addView(text(relayCaption(profile),11f,muted));gap(this,5);addView(text(tr("Tap for details · hold to remove","جزئیات با لمس؛ حذف با نگه‌داشتن"),10f,muted))
+                if(selected()?.id==profile.id)background=rounded(surface,22).apply{setStroke(dp(1),accent)}
+                addView(row().apply{addView(text(profile.name,16f,ink,true).apply{layoutParams=LinearLayout.LayoutParams(0,-2,1f);maxLines=1;ellipsize=android.text.TextUtils.TruncateAt.END});addView(chip(modeLabel(profile.mode)))});gap(this,8)
+                addView(text(profile.host,12f,muted));gap(this,12)
+                addView(row().apply{addView(text(relayCaption(profile),11f,muted).apply{layoutParams=LinearLayout.LayoutParams(0,-2,1f)});if(selected()?.id==profile.id)addView(text("●  "+tr("Selected","انتخاب‌شده"),10f,accent,true))});gap(this,8)
+                addView(text(tr("Tap for details · hold to remove","جزئیات با لمس؛ حذف با نگه‌داشتن"),10f,muted));isFocusable=true
                 setOnClickListener{openDetails(profile)}
                 setOnLongClickListener{if(active())notice(tr("Disconnect before removing a profile","پیش از حذف پروفایل اتصال را قطع کنید"))else dialog().setTitle(tr("Remove connection?","اتصال حذف شود؟")).setMessage(profile.name).setNegativeButton(tr("Cancel","انصراف"),null).setPositiveButton(tr("Remove","حذف")){_,_->try{profiles.remove(profile);store.save(profiles);render()}catch(e:Exception){notice(e.message?:"Could not save")}}.show();true}
             });gap(parent,12)
@@ -176,8 +220,10 @@ class MainActivity:Activity() {
     }
     private fun settingsPage(parent:LinearLayout){
         parent.addView(text(tr("Make it yours","مطابق سلیقهٔ شما"),24f,ink,true));gap(parent,20)
-        parent.addView(Switch(this).apply{tag="gaming-mode";text=tr("Gaming · low-latency UDP","گیمینگ · UDP کم‌تأخیر");setTextColor(ink);isChecked=prefs.getBoolean("gaming",false);isEnabled=!active();setOnCheckedChangeListener{_,checked->prefs.edit().putBoolean("gaming",checked).apply()}})
-        parent.addView(text(tr("Reconnect to apply. Keeps UDP queues short and drops stale queued packets after 150 ms under load. May increase packet loss; not a guaranteed lower ping. Use Direct or UDP-capable SOCKS outbound, not HTTP. Pause downloads; per-app mode can include only your game.","برای اعمال دوباره وصل شوید. صف UDP کوتاه می‌شود و بسته‌های مانده بیش از ۱۵۰ میلی‌ثانیه حذف می‌شوند؛ ممکن است افت بسته بیشتر شود و کاهش پینگ تضمینی نیست. از خروجی مستقیم یا SOCKS دارای UDP استفاده کنید، نه HTTP. دانلودها را متوقف کنید؛ حالت برنامه‌ای می‌تواند فقط بازی را پوشش دهد."),12f,muted));gap(parent,14)
+        parent.addView(card().apply{
+            addView(Switch(this@MainActivity).apply{tag="gaming-mode";text=tr("Gaming","گیمینگ");textSize=15f;setTextColor(ink);thumbTintList=ColorStateList(arrayOf(intArrayOf(android.R.attr.state_checked),intArrayOf()),intArrayOf(accent,muted));trackTintList=ColorStateList.valueOf(soft);isChecked=prefs.getBoolean("gaming",false);isEnabled=!active();setOnCheckedChangeListener{_,checked->prefs.edit().putBoolean("gaming",checked).apply()}});gap(this,10)
+            addView(text(tr("Reconnect to apply. Short UDP queues drop packets queued over 150 ms under load. Loss may increase; lower ping is not guaranteed. Use Direct or UDP-capable SOCKS, not HTTP.","برای اعمال دوباره وصل شوید. در فشار ترافیک، بسته‌های صف UDP با عمر بیش از ۱۵۰ میلی‌ثانیه حذف می‌شوند؛ افت بسته ممکن است بیشتر شود و کاهش پینگ تضمینی نیست. از خروجی مستقیم یا SOCKS دارای UDP استفاده کنید، نه HTTP."),12f,muted))
+        });gap(parent,14)
         parent.addView(button(tr("Appearance · ${prefs.getString("theme","system")}","ظاهر · ${prefs.getString("theme","system")}")){themePicker()});gap(parent,10)
         parent.addView(button(tr("Language · English / فارسی","زبان · English / فارسی")){dialog().setTitle("Language / زبان").setItems(arrayOf("English","فارسی")){_,i->prefs.edit().putString("language",if(i==0)"en"else"fa").apply();render()}.show()});gap(parent,18)
         parent.addView(card().apply{
@@ -185,7 +231,7 @@ class MainActivity:Activity() {
             addView(text(tr("VPN uses Android's permission dialog and excludes namedP's own UID so ICMP cannot loop into its tunnel. IPv6 is captured by the VPN route rather than allowed to bypass it. Local proxy mode only affects configured apps. Your server's HTTP outbound cannot carry UDP.","VPN از مجوز رسمی اندروید استفاده می‌کند و خود برنامه را از تونل خارج می‌کند تا حلقهٔ اتصال ایجاد نشود. مسیر IPv6 نیز وارد VPN می‌شود تا از آن عبور نکند. حالت پروکسی فقط برنامه‌های تنظیم‌شده را پوشش می‌دهد. خروجی HTTP سرور از UDP پشتیبانی نمی‌کند."),12f,muted))
         });gap(parent,15)
         parent.addView(button(tr("Source code ↗","کد منبع ↗")){startActivity(Intent(Intent.ACTION_VIEW,Uri.parse("https://github.com/namedkenzo/NamedClients")))});gap(parent,18)
-        parent.addView(text("namedP Android · ${BuildConfig.VERSION_NAME}\n"+tr("Initial alpha · real-device network testing required.\nProfiles are encrypted with Android Keystore; cloud backup is disabled.","نسخهٔ اولیهٔ آلفا؛ نیازمند تست روی دستگاه واقعی.\nپروفایل‌ها با Android Keystore محافظت شده‌اند و بکاپ ابری غیرفعال است."),11f,muted))
+        parent.addView(text("namedP Android · ${BuildConfig.VERSION_NAME}\n"+tr("Profiles protected by Android Keystore. Cloud backup is off.\nSame signing identity as earlier APKs; not a Play Store build.","پروفایل‌ها با Android Keystore محافظت می‌شوند؛ بکاپ ابری خاموش است.\nامضای APK مطابق نسخه‌های قبلی است؛ نسخهٔ Play Store نیست."),11f,muted))
     }
     private fun themePicker(){val values=arrayOf("system","light","dark");dialog().setTitle(tr("Appearance","ظاهر")).setSingleChoiceItems(arrayOf(tr("Follow system","مطابق سیستم"),tr("Light","روشن"),tr("Dark","تیره")),values.indexOf(prefs.getString("theme","system"))){d,i->prefs.edit().putString("theme",values[i]).apply();forceNight=null;d.dismiss();render()}.show()}
     private fun dialog()=AlertDialog.Builder(this,if(night)android.R.style.Theme_Material_Dialog_Alert else android.R.style.Theme_Material_Light_Dialog_Alert)
@@ -193,7 +239,7 @@ class MainActivity:Activity() {
     private fun inputError(error:Exception)=if(error is ProfileInputException && fa)error.persian else if(error is ProfileInputException)error.message.orEmpty() else tr("Could not save the connection. Please try again.","ذخیرهٔ اتصال انجام نشد؛ دوباره تلاش کنید.")
     private fun importButtons(parent:LinearLayout){
         val controls=row()
-        controls.addView(button(tr("Paste","چسباندن")){pasteProfile()}.apply{tag="paste-profile";layoutParams=LinearLayout.LayoutParams(0,dp(48),1f);isEnabled=!locked && !active() && preview==null})
+        controls.addView(button(tr("Paste connection","چسباندن کانفیگ")){pasteProfile()}.apply{tag="paste-profile";layoutParams=LinearLayout.LayoutParams(0,dp(48),1f);isEnabled=!locked && !active() && preview==null})
         controls.addView(button("+"){editProfile()}.apply{tag="manual-profile";contentDescription=tr("Add connection manually","افزودن دستی اتصال");layoutParams=LinearLayout.LayoutParams(dp(52),dp(48)).apply{marginStart=dp(8)};textSize=24f;isEnabled=!locked && !active() && preview==null})
         parent.addView(controls)
     }
@@ -245,6 +291,7 @@ class MainActivity:Activity() {
             box.addView(text(label,12f,muted));gap(box,3)
             return EditText(formContext).apply{
                 tag="manual-"+id;inputType=type;isSingleLine=true;setTextColor(ink);setHintTextColor(muted)
+                background=rounded(bg,12,true);setPadding(dp(12),dp(6),dp(12),dp(6));textSize=14f
                 importantForAutofill=View.IMPORTANT_FOR_AUTOFILL_NO_EXCLUDE_DESCENDANTS
                 setText(value);box.addView(this,LinearLayout.LayoutParams(-1,dp(48)));gap(box,12)
             }
@@ -253,18 +300,18 @@ class MainActivity:Activity() {
         val server=field("server",tr("Host","سرور"),profile?.host.orEmpty(),InputType.TYPE_CLASS_TEXT or InputType.TYPE_TEXT_VARIATION_URI).apply{hint="vpn.example.com";textDirection=View.TEXT_DIRECTION_LTR}
         box.addView(text(tr("Endpoint IP family","خانوادهٔ IP اتصال"),12f,muted))
         val families=listOf("ipv4","ipv6")
-        val ipFamily=Spinner(formContext).apply{tag="manual-family";adapter=ArrayAdapter(formContext,android.R.layout.simple_spinner_dropdown_item,listOf("IPv4","IPv6"));setSelection(if(q["family"]=="ipv6" || profile?.host?.contains(':')==true)1 else 0);box.addView(this,LinearLayout.LayoutParams(-1,dp(48)))}
+        val ipFamily=Spinner(formContext).apply{tag="manual-family";backgroundTintList=ColorStateList.valueOf(accent);adapter=ArrayAdapter(formContext,android.R.layout.simple_spinner_dropdown_item,listOf("IPv4","IPv6"));setSelection(if(q["family"]=="ipv6" || profile?.host?.contains(':')==true)1 else 0);box.addView(this,LinearLayout.LayoutParams(-1,dp(48)))}
         gap(box,12)
         box.addView(text(tr("Mode","حالت"),12f,muted))
         val modes=listOf("proxy","vpn","proxy_per_app")
         val connectionMode=Spinner(formContext).apply{
-            tag="manual-mode";adapter=ArrayAdapter(formContext,android.R.layout.simple_spinner_dropdown_item,modes.map{modeLabel(it)})
+            tag="manual-mode";backgroundTintList=ColorStateList.valueOf(accent);adapter=ArrayAdapter(formContext,android.R.layout.simple_spinner_dropdown_item,modes.map{modeLabel(it)})
             setSelection(modes.indexOf(profile?.mode ?: "vpn").coerceAtLeast(0));box.addView(this,LinearLayout.LayoutParams(-1,dp(48)))
         };gap(box,12)
         val methods=listOf("none","aes128","aes256","chacha20")
         box.addView(text(tr("Encryption","رمزنگاری"),12f,muted))
         val auth=Spinner(formContext).apply{
-            tag="manual-auth";adapter=ArrayAdapter(formContext,android.R.layout.simple_spinner_dropdown_item,listOf(tr("None · numeric key","خاموش · رمز عددی"),"AES-128","AES-256","ChaCha20"))
+            tag="manual-auth";backgroundTintList=ColorStateList.valueOf(accent);adapter=ArrayAdapter(formContext,android.R.layout.simple_spinner_dropdown_item,listOf(tr("None · numeric key","خاموش · رمز عددی"),"AES-128","AES-256","ChaCha20"))
             setSelection(methods.indexOf(q["encrypt"] ?: "none").coerceAtLeast(0));box.addView(this,LinearLayout.LayoutParams(-1,dp(48)))
         };gap(box,12)
         // setSingleLine replaces Android's transformation method. Apply the

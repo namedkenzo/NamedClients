@@ -22,6 +22,37 @@ import java.io.File
 
 @RunWith(AndroidJUnit4::class)
 class InterfaceTest {
+ @Test fun releaseUpgradePreservesEncryptedProfiles(){
+  val phase=InstrumentationRegistry.getArguments().getString("upgrade")
+  org.junit.Assume.assumeTrue(phase=="prepare" || phase=="verify")
+  val context=InstrumentationRegistry.getInstrumentation().targetContext
+  val store=ProfileStore(context)
+  val link="pingtunnel://upgrade.example?lport=1080&mode=proxy&key=123456"
+  if(phase=="prepare")store.save(mutableListOf(Profile("upgrade-fixture","Saved across upgrade",link)))
+  else{
+   val profile=store.read().single();assertEquals("upgrade-fixture",profile.id);assertEquals(link,profile.link)
+   assertEquals(0,context.applicationInfo.flags and android.content.pm.ApplicationInfo.FLAG_DEBUGGABLE)
+   store.save(mutableListOf())
+  }
+ }
+ @Test fun polishedNavigationKeepsConnectVisibleAndSupportsPersian(){
+  val context=InstrumentationRegistry.getInstrumentation().targetContext
+  val prefs=context.getSharedPreferences("namedp-ui",0);prefs.edit().clear().putString("language","fa").commit()
+  TunnelStatus.snapshot=TunnelSnapshot()
+  ActivityScenario.launch<MainActivity>(Intent(context,MainActivity::class.java)).use{scenario->
+   InstrumentationRegistry.getInstrumentation().waitForIdleSync()
+   scenario.onActivity{activity->
+    val view=activity.window.decorView
+    val connect=view.findViewWithTag<View>("connect")
+    val rect=android.graphics.Rect();assertTrue("Primary action must stay visible without scrolling",connect.getGlobalVisibleRect(rect));assertTrue(rect.height()>0)
+    assertEquals(View.LAYOUT_DIRECTION_RTL,connect.layoutDirection)
+    assertNotNull(view.findViewWithTag<View>("connection-hero"))
+    assertNotNull(view.findViewWithTag<View>("connection-status"))
+    view.findViewWithTag<View>("tab-profiles").performClick();assertNotNull(view.findViewWithTag<View>("paste-profile"))
+    view.findViewWithTag<View>("tab-settings").performClick();assertNotNull(view.findViewWithTag<View>("gaming-mode"))
+   }
+  };prefs.edit().clear().commit()
+ }
  private fun screenshot(activity:MainActivity,name:String){
   val view=activity.window.decorView.rootView
   val bitmap=Bitmap.createBitmap(view.width,view.height,Bitmap.Config.ARGB_8888);view.draw(Canvas(bitmap))

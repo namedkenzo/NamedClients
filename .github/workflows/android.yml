@@ -1,18 +1,6 @@
 name: namedP Android
 on:
-  push:
-    branches: [main, ipv6-settings, android-relay-delay, gaming-latency]
-    paths:
-      - 'android/**'
-      - 'cmd/namedp-android-engine/**'
-      - 'internal/**'
-      - 'go.mod'
-      - 'go.sum'
-      - 'scripts/build_android_native.sh'
-      - 'scripts/check_android_relay.cjs'
-      - '.github/workflows/android.yml'
-  pull_request:
-    paths: ['android/**', 'cmd/namedp-android-engine/**', 'internal/**', '.github/workflows/android.yml']
+  workflow_call:
   workflow_dispatch:
 permissions:
   contents: read
@@ -56,16 +44,35 @@ jobs:
         with:
           gradle-version: '8.11.1'
       - uses: actions/cache@v4
+        id: signing-cache
         with:
           path: ~/.android/debug.keystore
           key: namedp-android-development-keystore-v2
+      - name: Require the previous Android signing identity
+        if: steps.signing-cache.outputs.cache-hit != 'true'
+        run: |
+          echo 'Existing APK signing key cache is unavailable. Refusing to create an incompatible update.'
+          exit 1
       - name: Install Android toolchain
         run: sdkmanager 'platforms;android-35' 'build-tools;35.0.0' 'ndk;28.0.13004108'
       - name: Build independent Android engines
         env:
           ANDROID_NDK_HOME: ${{ env.ANDROID_HOME }}/ndk/28.0.13004108
         run: bash scripts/build_android_native.sh
-      - run: gradle -p android testDebugUnitTest assembleDebug assembleDebugAndroidTest
+      - run: gradle -p android testDebugUnitTest assembleDebug assembleRelease assembleDebugAndroidTest
+      - name: Verify release signing continuity and non-debuggable manifest
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release download android-v0.2.2-alpha --pattern namedP-android-0.2.2-alpha-debug.apk --dir previous-apk
+          apk=android/app/build/outputs/apk/release/app-release.apk
+          signer="$ANDROID_HOME/build-tools/35.0.0/apksigner"
+          previous=$("$signer" verify --print-certs previous-apk/*.apk | sed -n 's/^Signer #1 certificate SHA-256 digest: //p')
+          current=$("$signer" verify --print-certs "$apk" | sed -n 's/^Signer #1 certificate SHA-256 digest: //p')
+          test -n "$previous" && test "$previous" = "$current"
+          "$ANDROID_HOME/build-tools/35.0.0/aapt" dump badging "$apk" > apk-manifest.txt
+          if rg -q 'application-debuggable' apk-manifest.txt; then echo 'Release APK must not be debuggable'; exit 1; fi
+          echo 'APK signature matches the previously distributed build; release manifest is not debuggable.'
       - name: Enable KVM for UI emulator
         run: |
           echo 'KERNEL=="kvm", GROUP="kvm", MODE="0666", OPTIONS+="static_node=kvm"' | sudo tee /etc/udev/rules.d/99-kvm4all.rules
@@ -87,13 +94,19 @@ jobs:
             adb pull /sdcard/Pictures/namedP-tests/preview-dark-connected-preview.png dist/android/previews/dark-connected-preview.png
             adb pull /sdcard/Pictures/namedP-tests/preview-details.png dist/android/previews/details.png
             node scripts/check_png.cjs dist/android/previews
-      - name: Package development APK
+            adb shell am instrument -w -r -e upgrade prepare -e class dev.namedkenzo.namedp.InterfaceTest#releaseUpgradePreservesEncryptedProfiles dev.namedkenzo.namedp.test/androidx.test.runner.AndroidJUnitRunner > upgrade-prepare.txt
+            cat upgrade-prepare.txt
+            if ! rg -q 'OK \(1 test\)' upgrade-prepare.txt; then exit 1; fi
+            adb install -r android/app/build/outputs/apk/release/app-release.apk
+            adb shell am instrument -w -r -e upgrade verify -e class dev.namedkenzo.namedp.InterfaceTest#releaseUpgradePreservesEncryptedProfiles dev.namedkenzo.namedp.test/androidx.test.runner.AndroidJUnitRunner > upgrade-verify.txt
+            cat upgrade-verify.txt
+            if ! rg -q 'OK \(1 test\)' upgrade-verify.txt; then exit 1; fi
+      - name: Package release APK
         run: |
           VERSION=$(node -e 'process.stdout.write(require("fs").readFileSync("android/app/build.gradle.kts","utf8").match(/versionName = "([^"]+)"/)[1])')
           mkdir -p dist/android
-          cp android/app/build/outputs/apk/debug/app-debug.apk "dist/android/namedP-android-$VERSION-debug.apk"
-          cp android/app/build/outputs/apk/androidTest/debug/app-debug-androidTest.apk dist/android/namedP-android-ui-tests.apk
-          (cd dist/android && sha256sum "namedP-android-$VERSION-debug.apk" > SHA256SUMS)
+          cp android/app/build/outputs/apk/release/app-release.apk "dist/android/namedP-$VERSION-android.apk"
+          (cd dist/android && sha256sum "namedP-$VERSION-android.apk" > SHA256SUMS)
       - name: Record credential-free interface previews
         run: |
           echo "NAMEDP_LIGHT_PREVIEW=$(base64 -w0 dist/android/previews/light-idle.png)"
@@ -101,9 +114,9 @@ jobs:
           echo "NAMEDP_DETAILS_PREVIEW=$(base64 -w0 dist/android/previews/details.png)"
       - uses: actions/upload-artifact@v7
         with:
-          name: namedP-android-development
+          name: namedP-android-release
           path: |
-            dist/android/namedP-android-*-debug.apk
+            dist/android/namedP-*-android.apk
             dist/android/SHA256SUMS
       - uses: actions/upload-artifact@v7
         with:
@@ -116,30 +129,4 @@ jobs:
           path: |
             android/app/build/reports/tests/
             android/app/build/reports/androidTests/
-  release:
-    if: github.event_name == 'push' && github.ref == 'refs/heads/main' && contains(github.event.head_commit.message, '[release-android]')
-    needs: [android, relay]
-    runs-on: ubuntu-latest
-    permissions:
-      contents: write
-    steps:
-      - uses: actions/checkout@v7
-      - uses: actions/download-artifact@v8
-        with:
-          name: namedP-android-development
-          path: android-release
-      - uses: actions/download-artifact@v8
-        with:
-          name: namedP-android-ui-previews
-          path: android-previews
-      - env:
-          GH_TOKEN: ${{ github.token }}
-        run: |
-          VERSION=$(node -e 'process.stdout.write(require("fs").readFileSync("android/app/build.gradle.kts","utf8").match(/versionName = "([^"]+)"/)[1])')
-          TAG="android-v$VERSION"
-          if gh release view "$TAG" >/dev/null 2>&1; then
-            # Preserve the original tagged APK/checksum; repair only its previews.
-            gh release upload "$TAG" android-previews/*.png --clobber
-          else
-            gh release create "$TAG" android-release/*.apk android-release/SHA256SUMS android-previews/*.png --target "$GITHUB_SHA" --prerelease --title "namedP Android $VERSION · Development APK" --notes-file "docs/RELEASE-$TAG.md"
-          fi
+

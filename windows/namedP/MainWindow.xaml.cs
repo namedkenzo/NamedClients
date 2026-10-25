@@ -21,15 +21,28 @@ public partial class MainWindow : Window
     CancellationTokenSource? testSession;
     bool testing;
     readonly DispatcherTimer ticker = new() { Interval = TimeSpan.FromSeconds(1) };
+    readonly DispatcherTimer profileSaver = new() { Interval = TimeSpan.FromMilliseconds(600) };
+    readonly ProfileVault vault;
+    bool profileDirty;
     readonly string settings = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "namedP", "theme.txt");
-    public MainWindow()
+    public MainWindow() : this(new ProfileVault(Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "namedP", "profile.dat"))) { }
+    public MainWindow(ProfileVault profileVault)
     {
+        vault=profileVault;
         InitializeComponent();
         var version = System.Reflection.CustomAttributeExtensions.GetCustomAttribute<System.Reflection.AssemblyInformationalVersionAttribute>(typeof(MainWindow).Assembly)?.InformationalVersion.Split('+')[0] ?? "development";
         ClientVersion.Text = "namedP · " + version;
         try { if (File.Exists(settings) && int.TryParse(File.ReadAllText(settings), out int index)) Theme.SelectedIndex = Math.Clamp(index, 0, 2); } catch (IOException) { }
         try { Gaming.IsChecked = File.Exists(Path.ChangeExtension(settings,"gaming")) && File.ReadAllText(Path.ChangeExtension(settings,"gaming")).Trim()=="true"; } catch (IOException) { }
-        Link.PasswordChanged += (_,_) => { if(!connected&&!connecting) { Delay.Text="Relay delay: not tested"; UpdateModes(); } };
+        try { Link.Password = vault.Load(); ProfileNote.Text = Link.Password.Length > 0 ? "Restored · protected by your Windows account" : "Your link is saved securely on this Windows account."; }
+        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException or System.Security.Cryptography.CryptographicException)
+        { ProfileNote.Text = "Saved link could not be unlocked. Paste a backup link or choose Forget."; }
+        profileSaver.Tick += (_,_) => SaveProfile();
+        Link.PasswordChanged += (_,_) => {
+            profileDirty=true; profileSaver.Stop();profileSaver.Start();
+            ProfileNote.Text="Saving securely…";
+            if(!connected&&!connecting) { Delay.Text="Not tested"; UpdateModes(); }
+        };
         ApplyTheme(); UpdateModes();
         SystemEvents.UserPreferenceChanged += SystemThemeChanged;
         ticker.Tick += (_, _) => { if (connected) Elapsed.Text = (DateTime.UtcNow - connectedAt).ToString(@"hh\:mm\:ss"); };
@@ -51,10 +64,11 @@ public partial class MainWindow : Window
             dark = key?.GetValue("AppsUseLightTheme") is int value && value == 0;
         }
         var colors = dark
-            ? new[] { "#10161D", "#19222C", "#EDF3F4", "#97A6B5", "#2B3946", "#62DDC0" }
-            : new[] { "#F5F5F0", "#FFFFFF", "#1A302C", "#667A75", "#DBE4DD", "#4BC4A5" };
-        string[] names = ["Bg", "Surface", "Text", "Muted", "Line", "Accent"];
+            ? new[] { "#0D1917", "#152420", "#EDF6F1", "#9AB4A8", "#2A4037", "#73DFBE", "#1B352B", "#102A20", "#F3B7A5" }
+            : new[] { "#F4F6F1", "#FFFFFF", "#162F26", "#5C7369", "#D8E5DD", "#166C56", "#E7F0EA", "#FFFFFF", "#A33B2A" };
+        string[] names = ["Bg", "Surface", "Text", "Muted", "Line", "Accent", "Soft", "AccentInk", "Danger"];
         for (int i = 0; i < names.Length; i++) Application.Current.Resources[names[i]] = new SolidColorBrush((Color)ColorConverter.ConvertFromString(colors[i]));
+        Application.Current.Resources["HeroBrush"] = new LinearGradientBrush((Color)ColorConverter.ConvertFromString(dark?"#203B30":"#E4F0E7"),(Color)ColorConverter.ConvertFromString(dark?"#152420":"#F4F6F1"),60);
         if (ProfileMode != null) UpdateModes();
     }
     void GamingChanged(object sender, RoutedEventArgs e)
@@ -84,6 +98,19 @@ public partial class MainWindow : Window
     void PasteLink(object sender, RoutedEventArgs e)
     {
         try { if (Clipboard.ContainsText()) Link.Password = Clipboard.GetText().Trim(); } catch (System.Runtime.InteropServices.COMException) { Error.Text = "Clipboard busy. Try again."; }
+    }
+    void SaveProfile()
+    {
+        profileSaver.Stop(); if(!profileDirty)return;
+        try { vault.Save(Link.Password);profileDirty=false;ProfileNote.Text=Link.Password.Length>0?"Saved · protected by your Windows account":"No saved link · paste one to get started"; }
+        catch(Exception ex) when(ex is IOException or UnauthorizedAccessException or System.Security.Cryptography.CryptographicException)
+        { ProfileNote.Text="Could not save this link. Keep a backup and try again."; }
+    }
+    void ForgetProfile(object sender,RoutedEventArgs e)
+    {
+        if(connected||connecting)return;
+        if(MessageBox.Show(this,"Remove the saved link from this Windows account? Your panel configuration is not deleted.","Forget connection",MessageBoxButton.YesNo,MessageBoxImage.Question)!=MessageBoxResult.Yes)return;
+        Link.Password="";profileDirty=true;SaveProfile();
     }
     void OpenGithub(object sender, RoutedEventArgs e) => Process.Start(new ProcessStartInfo("https://github.com/namedkenzo/NamedClients") { UseShellExecute = true });
     static Process Start(string file, params string[] args)
@@ -127,7 +154,7 @@ public partial class MainWindow : Window
         try{fullVpn=ReadMode(Link.Password)=="vpn";}catch(IOException ex){Error.Text=ex.Message;return;}
         CancelTest();Error.Text = ""; connecting = true; session = new(); var ct = session.Token;
         Dog.State = "connecting"; StateLabel.Text = "●  Checking your tunnel…"; ConnectButton.Content = "Cancel";
-        Gaming.IsEnabled = Link.IsEnabled = TestButton.IsEnabled = false;
+        Gaming.IsEnabled = Link.IsEnabled = ForgetButton.IsEnabled = PasteButton.IsEnabled = TestButton.IsEnabled = false;
         try
         {
             engine = Start("namedp-engine.exe");
@@ -181,14 +208,14 @@ public partial class MainWindow : Window
         session?.Dispose(); session = null;
         Dog.State = "idle"; Dog.InvalidateVisual(); StateLabel.Text = "●  Ready when you are";
         Headline.Text = "Your network, a little calmer."; ConnectButton.Content = "Connect →";
-        Gaming.IsEnabled = Link.IsEnabled = ConnectButton.IsEnabled = TestButton.IsEnabled = vpn == null;
+        Gaming.IsEnabled = Link.IsEnabled = ForgetButton.IsEnabled = PasteButton.IsEnabled = ConnectButton.IsEnabled = TestButton.IsEnabled = vpn == null;
         UpdateModes(); stopping = false;
     }
     async void OnClosing(object? sender, CancelEventArgs e)
     {
-        if (closing) return; e.Cancel = true; await Disconnect();
+        if (closing) return; e.Cancel = true; SaveProfile(); await Disconnect();
         if (vpn != null) return;
-        closing = true; ticker.Stop(); SystemEvents.UserPreferenceChanged -= SystemThemeChanged; Close();
+        closing = true; ticker.Stop(); profileSaver.Stop(); SystemEvents.UserPreferenceChanged -= SystemThemeChanged; Close();
     }
     static string Bytes(ulong n) => n < 1024 ? $"{n} B" : n < 1048576 ? $"{n / 1024d:F1} KiB" : $"{n / 1048576d:F1} MiB";
     void CancelTest(){testSession?.Cancel();try{testEngine?.Kill(true);}catch(InvalidOperationException){} }
@@ -209,7 +236,7 @@ public partial class MainWindow : Window
             if(process.ExitCode!=0)throw new IOException("Relay test failed. Check the profile, outbound and HTTPS reachability.");
             using var doc=JsonDocument.Parse(await stdout);var result=doc.RootElement;
             long ms=ReadRelayDelay(result);
-            if(testedLink==Link.Password)Delay.Text=$"Relay delay: {ms} ms · HTTPS 204";
+            if(testedLink==Link.Password)Delay.Text=$"{ms} ms · HTTPS 204";
         }catch(OperationCanceledException){Delay.Text="Relay test cancelled or timed out.";}
         catch(Exception){if(testedLink==Link.Password)Delay.Text="Relay test failed; the VPN session is unchanged.";}
         finally{

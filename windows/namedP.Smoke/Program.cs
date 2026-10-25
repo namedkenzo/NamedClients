@@ -9,15 +9,35 @@ static class Program
 {
  [STAThread] static int Main()
  {
-  var app = new App(); app.InitializeComponent();
-  var window = new MainWindow(); window.Show();
+  var app = new App(); app.InitializeComponent();app.ShutdownMode=ShutdownMode.OnExplicitShutdown;
+  string data=Path.Combine(Path.GetTempPath(),"namedP-vault-tests-"+Guid.NewGuid().ToString("N"));
+  Directory.CreateDirectory(data);
+  var vault=new ProfileVault(Path.Combine(data,"profile.dat"));
+  string saved="pingtunnel://restart.example?mode=proxy&encrypt=chacha20&encrypt_key=private-key%2Bvalue";
+  if(vault.Load()!="")throw new Exception("Missing profile must be empty");
+  vault.Save(saved);
+  if(System.Text.Encoding.UTF8.GetString(File.ReadAllBytes(Path.Combine(data,"profile.dat"))).Contains("restart.example"))throw new Exception("Plaintext leaked to disk");
+  var window = new MainWindow(vault); window.Show();
+  if(((PasswordBox)window.FindName("Link")).Password!=saved)throw new Exception("Saved profile not restored into UI");
+  ((PasswordBox)window.FindName("Link")).Password="pingtunnel://closed.example?mode=vpn&key=123456";
+  window.Close(); // Closing must flush the pending debounce, not lose the edit.
+  window=new MainWindow(vault);window.Show();
+  if(((PasswordBox)window.FindName("Link")).Password!="pingtunnel://closed.example?mode=vpn&key=123456")throw new Exception("Profile lost on restart");
+  ((PasswordBox)window.FindName("Link")).Password="";
+  window.Close();if(vault.Load()!=""||File.Exists(Path.Combine(data,"profile.dat")))throw new Exception("Cleared profile persisted");
+  File.WriteAllBytes(Path.Combine(data,"profile.dat"),new byte[]{1,2,3});
+  window=new MainWindow(vault);window.Show();window.Close();
+  if(!File.ReadAllBytes(Path.Combine(data,"profile.dat")).SequenceEqual(new byte[]{1,2,3}))throw new Exception("Unreadable saved data silently overwritten");
+  vault.Save("");
+  window=new MainWindow(vault);window.Show();
   var theme = (ComboBox)window.FindName("Theme");
   Directory.CreateDirectory("windows/namedP.Smoke");
   foreach (var pair in new[] { (1,"dark"),(2,"light") })
   {
    theme.SelectedIndex = pair.Item1;
-   window.Measure(new Size(530,800)); window.Arrange(new Rect(0,0,530,800)); window.UpdateLayout();
-   var image = new RenderTargetBitmap(530,800,96,96,PixelFormats.Pbgra32); image.Render(window);
+   window.Measure(new Size(540,870)); window.Arrange(new Rect(0,0,540,870)); window.UpdateLayout();
+   theme.IsDropDownOpen=true;window.UpdateLayout();theme.IsDropDownOpen=false;
+   var image = new RenderTargetBitmap(540,870,96,96,PixelFormats.Pbgra32); image.Render(window);
    var png = new PngBitmapEncoder(); png.Frames.Add(BitmapFrame.Create(image));
    using var file = File.Create("windows/namedP.Smoke/preview-"+pair.Item2+".png"); png.Save(file);
   }
@@ -44,7 +64,8 @@ static class Program
    catch(System.Reflection.TargetInvocationException ex) when(ex.InnerException is IOException){if(valid)throw;}
   }
   foreach (string state in new[]{"idle","connecting","connected"}) { dog.State=state; dog.InvalidateVisual(); window.UpdateLayout(); }
-  Console.WriteLine("Window, system/dark/light themes and mascot rendered successfully.");
+  window.Close();vault.Save("");Directory.Delete(data); // Only our uniquely created empty test directory.
+  Console.WriteLine("Encrypted profile restart, immediate-close flush, deletion, corruption protection, polished themes, mode, delay and mascot passed.");
   return 0;
  }
 }

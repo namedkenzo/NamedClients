@@ -12,9 +12,10 @@ assert.equal(read('windows/namedP/app.manifest').match(/assemblyIdentity version
 assert.ok(read('go.mod').startsWith('module namedp\n'));
 assert.ok(!read('go.mod').includes('namedicmp'));
 const workflow = read('.github/workflows/windows.yml');
-assert.ok(workflow.includes('Publish Windows client only'));
+assert.ok(workflow.includes('workflow_call:'));
+assert.ok(!workflow.includes('gh release create'));
 assert.ok(!workflow.toLowerCase().includes('assembledebug'));
 assert.ok(!workflow.includes('*.apk'));
 assert.ok(!fs.existsSync(path.join(root, 'install.sh')));
 assert.ok(!fs.existsSync(path.join(root, 'internal/panel')));
-console.log(`Standalone Windows client ${version}; no server runtime or Android publication.`);
+console.log(`Standalone Windows client ${version}; no panel runtime, publication handled by the shared release workflow.`);

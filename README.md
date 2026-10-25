@@ -1,68 +1,93 @@
-# NamedClients
+# namedP · NamedClients
 
-**The home of namedP clients for namedICMP.**
+A little companion. A private connection.
 
-[فارسی](README.fa.md) · [Windows downloads](https://github.com/namedkenzo/NamedClients/releases) · [Web panel](https://github.com/namedkenzo/NamedICMP) · [MIT license](LICENSE)
+[فارسی](README.fa.md) · [Download the latest release](https://github.com/namedkenzo/NamedClients/releases/latest) · [NamedICMP web panel](https://github.com/namedkenzo/NamedICMP) · [MIT license](LICENSE)
 
-| Platform | Status | Source |
+Native Windows and Android clients for configurations exported by the **NamedICMP web panel**.
+Both platforms now share one **1.0.0 stable GitHub release**, independently versioned from the panel.
+
+| Download | Platform | How to run |
 | --- | --- | --- |
-| Windows 10/11 x64 | namedP `0.3.0-alpha` | [windows/namedP](windows/namedP) |
-| Android 8+ (arm64) | `0.2.2-alpha` development APK | [android](android) · [Download](https://github.com/namedkenzo/NamedClients/releases/tag/android-v0.2.2-alpha) |
+| [Setup EXE](https://github.com/namedkenzo/NamedClients/releases/download/namedp-v1.0.0/namedP-1.0.0-windows-x64-setup.exe) | Windows 10/11 x64 | Choose an install folder and shortcuts |
+| [Portable ZIP](https://github.com/namedkenzo/NamedClients/releases/download/namedp-v1.0.0/namedP-1.0.0-windows-x64.zip) | Windows 10/11 x64 | Extract **all files**, run `namedP.exe` |
+| [Android APK](https://github.com/namedkenzo/NamedClients/releases/download/namedp-v1.0.0/namedP-1.0.0-android.apk) | Android 8+, arm64 | Install over your existing namedP app |
 
-## Windows: connect in three steps
+## Connect, without the clutter
 
-1. Download the **Setup EXE** to choose an install folder, or extract **all files** from the portable ZIP in [Windows 0.3.0-alpha](https://github.com/namedkenzo/NamedClients/releases/tag/namedp-v0.3.0-alpha).
-2. Run `namedP.exe` as Administrator and paste the complete `pingtunnel://` profile exported by the panel.
-3. Press Connect. The configuration's `mode` selects VPN or local SOCKS5; there is no manual override. Optional Gaming and HTTPS Test delay are available.
+Copy the complete `pingtunnel://` link from your panel → **Paste** → **Connect**.
+The configuration chooses VPN or local SOCKS5; there is no separate home-screen mode switch.
+Android also offers **+** for manual input and a profile Details screen.
 
-The app follows the system theme by default, supports dark/light overrides and includes an animated dachshund companion. Its independent Go transport carries separate TCP/UDP flows and accepts either a numeric key or an encryption-only profile. Full VPN carries IPv4 application traffic over an IPv4 or IPv6 endpoint; other Internet IPv6 is guarded while the exact endpoint and essential local ICMPv6 remain reachable. More-specific LAN routes remain available. See the [Windows guide](docs/NAMEDP.md).
+- **Made for your desktop and phone:** matching light/dark palettes, system theme by default,
+  refined connection cards and an original animated dachshund. Reduced-motion settings are respected.
+- **Remembered, not exposed:** Windows restores the last link using Windows account-bound DPAPI;
+  **Forget** removes it. Android profiles use Android Keystore. Credentials remain masked and off process command lines.
+- **Useful diagnostics:** manually test verified HTTPS relay delay through the selected profile
+  at `https://www.gstatic.com/generate_204`. This is not a speed test or game ping.
+- **Gaming, when you want it:** optional shorter UDP queues discard stale queued packets.
+  Reconnect to apply; packet loss may increase and a lower RTT is not guaranteed.
+- **Your existing profiles:** separate TCP/UDP flows, numeric **or** encryption-only credentials,
+  IPv4/IPv6 endpoints and domains. No web-panel update is needed for the 1.0 visual refresh.
 
-> Windows remains alpha. Build, protocol and UI checks do not replace real Windows/VPS network, throughput and cleanup acceptance testing.
+[Windows guide](docs/NAMEDP.md) · [Android guide](android/README.md) · [1.0.0 changes](docs/RELEASE-namedp-v1.0.0.md)
 
-## Android
+## A look inside
 
-**New in 0.2.1-alpha:** Test delay measures `https://www.gstatic.com/generate_204` through the selected profile (TCP + verified TLS + HTTP 204), not the phone's direct connection. Works before or during VPN use; results appear on Home, Connections and Details. It is not a speed test. Windows remains unchanged.
+| Windows | Android |
+| --- | --- |
+| ![Windows dark interface](https://github.com/namedkenzo/NamedClients/releases/download/namedp-v1.0.0/windows-preview-dark.png) | ![Android light interface](https://github.com/namedkenzo/NamedClients/releases/download/namedp-v1.0.0/android-light-idle.png) |
 
-Routing follows the configuration's `mode`; the home screen has no separate mode switch. Tap a profile for Details, Save/Copy, HTTPS relay-delay Test, and VPN/Proxy/per-app options. Server-side burst control and reversible installer tuning are in [NamedICMP 0.3.1](https://github.com/namedkenzo/NamedICMP/releases/tag/v0.3.1).
+Screenshots are credential-free interface previews, not evidence of a live VPN connection.
 
-Copy the panel Config link → **Paste** → **Connect**. Or tap **+** to enter the server and numeric/encryption key manually. Names are optional.
+## Before updating
 
-The Android app is now available as a **debug-signed development APK**, not a production/Play Store release. It has its own connection-first UI, Home/Connections/Settings, system/light/dark themes, Persian/English labels and animated dachshund. Profiles are protected with Android Keystore. Rootless ICMP depends on device/kernel support. [Android guide](android/README.md) · [Development APK](https://github.com/namedkenzo/NamedClients/releases/tag/android-v0.2.2-alpha).
+Close old Windows copies, then run Setup or extract the new ZIP into a clean folder.
+Administrator access is required for the raw ICMP socket and Wintun.
 
-Emulator profile/UI tests and native rootless socket execution passed. A real phone/VPS connection, throughput and leak acceptance are still pending. Windows functionality was not redesigned as part of the Android work.
+Install the Android APK **over the old app**: do not uninstall or clear app data if you want to retain profiles.
+The non-debuggable release APK preserves the previous development signing identity; CI verifies certificate
+continuity and an upgrade retaining an encrypted profile. It is not a Play Store build.
+Windows Setup/app still lack publisher Authenticode signing; SmartScreen may warn.
+A stable GitHub label is not a security audit or a promise of bug-free operation.
 
-[Light interface preview](https://github.com/namedkenzo/NamedClients/releases/download/android-v0.2.2-alpha/light-idle.png) · [Dark interface preview](https://github.com/namedkenzo/NamedClients/releases/download/android-v0.2.2-alpha/dark-idle.png)
-
-IPv6 endpoints are supported by namedP 0.2.0-alpha: use `pingtunnel://[IPv6]?lport=1080&mode=vpn&family=ipv6&key=...`, or a domain with an AAAA record and `family=ipv6`. Update the web panel to 0.4.0. Windows retains a physical endpoint bypass and guards other IPv6 traffic; real-device/VPS acceptance remains necessary.
+Windows full-device VPN carries **IPv4 TCP/UDP** over IPv4/IPv6 outer endpoints and guards other Internet IPv6;
+more-specific LAN routes remain. Android uses VpnService; rootless ICMP depends on device/kernel support.
+HTTP outbounds cannot carry UDP. Network behavior still depends on your device, VPS and ICMP path.
 
 ## Repository layout
 
 ```text
-windows/             Native namedP UI and render checks
-android/             Native Android client and VPN service
-cmd/namedp-engine/   Standalone Windows client engine
-internal/client/     ICMP transport and SOCKS5 TCP/UDP
-internal/wire/       Compatible protocol codec and encryption
+windows/             Windows UI, installer and render/persistence checks
+android/             Android UI, profile storage and VPN service
+cmd/                 Independently built Windows/Android engines
+internal/client/     Compatible ICMP transport and SOCKS5 TCP/UDP
+internal/wire/       Protocol codec and encryption
 internal/reliable/   Ordered, deduplicated TCP transport
 ```
 
-Client versions and releases are independent of the web panel. This repository contains client apps only; the web panel, its managed tunneling core, Linux installer and panel data belong in [NamedICMP](https://github.com/namedkenzo/NamedICMP).
+Only clients live here. The web panel, its managed tunneling core and Linux installer stay in
+[NamedICMP](https://github.com/namedkenzo/NamedICMP). Installing the web panel does not download these clients.
 
 ## Other PingTunnel clients
 
-- [Original PingTunnel CLI and releases](https://github.com/esrrhs/pingtunnel/releases)
-- [Community Android/desktop PingTunnel Client](https://github.com/itismoej/pingtunnel-client/releases)
+- [Original PingTunnel CLI](https://github.com/esrrhs/pingtunnel/releases)
+- [Community PingTunnel Client for Android/desktop](https://github.com/itismoej/pingtunnel-client/releases)
 
-These are separate upstream/community projects. Client capabilities and encryption flags vary by version.
+These are independent upstream/community projects; capabilities and encryption flags vary.
 
 ## Build & verify
 
-Go 1.26+; .NET SDK 8 for Windows. The workflow bundles the .NET runtime, pinned tun2socks and supplier-signed Wintun with licenses.
+Go 1.26+, .NET SDK 8 on Windows; JDK 17, Android SDK/NDK and Gradle for Android.
+The shared workflow gates publication on both platforms: Go race/protocol compatibility tests,
+WPF DPAPI/restart/theme checks, real firewall/Wintun setup and cleanup checks with global routes mocked,
+Setup install/uninstall, Android unit/emulator tests, signing continuity and profile-preserving upgrades.
+Packages include checksums and dependency notices. See [migration notes](docs/MIGRATION.md).
 
 ```bash
 go test -race ./...
 go vet ./...
 node scripts/test_versions.cjs
+node scripts/test_android_version.cjs
+node scripts/test_client_release.cjs
 ```
-
-CI also checks out a pinned server reference and runs its original client/server compatibility tests against this repository's current transport sources. This reference is for tests only, not a runtime or module dependency. See [migration notes](docs/MIGRATION.md).

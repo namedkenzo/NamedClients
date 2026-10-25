@@ -1,8 +1,6 @@
 name: namedP Windows client
 on:
-  push:
-    branches: [main, ipv6-settings, windows-refresh]
-  pull_request:
+  workflow_call:
   workflow_dispatch:
 permissions:
   contents: read
@@ -17,6 +15,7 @@ jobs:
       - run: go test -race ./...
       - run: go vet ./...
       - run: node scripts/test_versions.cjs
+      - run: node scripts/test_client_release.cjs
       - uses: actions/checkout@v7
         with:
           repository: namedkenzo/NamedICMP
@@ -119,24 +118,10 @@ jobs:
         with:
           name: namedP-ui-previews
           path: windows/namedP.Smoke/preview-*.png
-  release:
-    if: github.event_name == 'push' && github.ref == 'refs/heads/main' && contains(github.event.head_commit.message, '[release-windows]')
-    needs: [linux, windows, ipv6]
-    runs-on: ubuntu-latest
-    permissions:
-      contents: write
-    steps:
-      - uses: actions/checkout@v7
-      - uses: actions/download-artifact@v8
-        with:
-          name: namedP-windows-x64
-          path: client-release
-      - name: Publish Windows client only
-        env:
-          GH_TOKEN: ${{ github.token }}
+      - name: Credential-free UI previews for review
+        shell: pwsh
         run: |
-          version=$(tr -d '\r\n' < windows/namedP/VERSION)
-          gh release create "namedp-v$version" "client-release/namedP-$version-windows-x64.zip" "client-release/namedP-$version-windows-x64-setup.exe" client-release/SHA256SUMS --target "$GITHUB_SHA" --prerelease --title "namedP $version · Windows client · Setup + Portable" --notes-file "docs/RELEASE-namedp-v$version.md"
+          Get-ChildItem windows/namedP.Smoke/preview-*.png | ForEach-Object { Write-Output ("NAMEDP_WINDOWS_PREVIEW_" + $_.BaseName + "=" + [Convert]::ToBase64String([IO.File]::ReadAllBytes($_.FullName))) }
   ipv6:
     runs-on: ubuntu-latest
     steps:

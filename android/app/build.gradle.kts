@@ -6,8 +6,8 @@ android {
         applicationId = "dev.namedkenzo.namedp"
         minSdk = 26
         targetSdk = 35
-        versionCode = 7
-        versionName = "0.2.2-alpha"
+        versionCode = 8
+        versionName = "1.0.0"
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
         ndk { abiFilters += listOf("arm64-v8a", "x86_64") }
     }
@@ -15,7 +15,10 @@ android {
     compileOptions { sourceCompatibility = JavaVersion.VERSION_17; targetCompatibility = JavaVersion.VERSION_17 }
     kotlinOptions { jvmTarget = "17" }
     packaging { jniLibs { useLegacyPackaging = true; keepDebugSymbols += "**/*.so" } }
-    buildTypes { release { isMinifyEnabled = false } }
+    // Preserve the previously distributed APK identity for in-place upgrades.
+    // This is a non-debuggable release, but still uses the existing development
+    // certificate. Owner-controlled production signing is a separate migration.
+    buildTypes { release { isMinifyEnabled = false; isDebuggable = false; signingConfig = signingConfigs.getByName("debug") } }
 }
 dependencies {
     testImplementation("junit:junit:4.13.2")

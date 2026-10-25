@@ -1,57 +1,64 @@
-# namedP for Windows
+# namedP for Windows · 1.0.0
 
-namedP is the dedicated Windows client for namedICMP. Download
-`namedP-0.3.0-alpha-windows-x64.zip` from the **namedP** release. Extract **the entire ZIP**
-into a folder and launch `namedP.exe`. Windows requests Administrator permission
-for the raw ICMP socket and network adapter. Windows 10/11 x64 is the initial target.
-The .NET runtime is bundled. No Python, browser or upstream PingTunnel executable is required.
+Download the [shared stable release](https://github.com/namedkenzo/NamedClients/releases/latest).
+Choose `namedP-1.0.0-windows-x64-setup.exe` for an installer with folder selection,
+or extract **all files** from `namedP-1.0.0-windows-x64.zip` and launch `namedP.exe`.
+Windows 10/11 x64 is supported; the .NET runtime is bundled.
+Administrator access is required for raw ICMP and Wintun. Close older copies before updating.
 
-Paste a complete `pingtunnel://` link exported by the panel. The field masks your
-credential and profiles are not saved to disk or passed in command-line arguments.
-The profile's `mode=vpn` or `mode=proxy` selects routing automatically; then Connect. The encrypted or numeric
-credential is validated with an ICMP handshake before the GUI shows Connected.
+## Your connection, remembered
 
-- Full-device VPN sends IPv4 TCP and UDP through a Wintun adapter and tun2socks.
-  An endpoint /32 (IPv4) or /128 (IPv6) route stays on the physical gateway to avoid recursive tunneling.
-  Other Internet IPv6 is temporarily blocked; the exact outer endpoint and
-  essential link-local ICMPv6 neighbor/router discovery stay reachable. Physical
-  interface DNS port 53 is blocked; the tunnel adapter uses 1.1.1.1 and 1.0.0.1.
-  Existing more-specific LAN routes remain available; this is not a strict LAN kill switch.
-- Local proxy opens SOCKS5 on `127.0.0.1:<lport>` with TCP CONNECT and UDP ASSOCIATE.
-  Configure consuming apps to use it. HTTP proxy negotiation is not implemented;
-  use SOCKS5. Server-side HTTP CONNECT outbounds are separate and still TCP-only.
-- System theme is the initial default. Dark and Light override it. The companion
-  breathes/blinks while idle, runs while connecting and wags its tail when connected.
-  Windows' animation preference is respected. No polling animation assets or downloads.
-- A separate PowerShell guardian removes only this session's routes/firewall rules
-  on disconnect, engine failure or GUI exit. Original physical adapter DNS is not
-  edited. Network changes require reconnecting. Sleep/resume is not seamless roaming.
+Paste the complete `pingtunnel://` profile from the NamedICMP web panel, then Connect.
+The configuration's `mode=vpn` or `mode=proxy` determines routing. There is no manual mode override.
+The engine validates credentials with an ICMP handshake before Connected.
 
-The transport is original Go code sharing the server's independently written wire
-codec and selective-repeat implementation. TCP and UDP use separate random IDs;
-encrypted profiles omit the numeric password. TCP retries are ordered and deduplicated.
-UDP has a bounded 8192-byte datagram limit and no retransmission. UDP availability
-still depends on your server outbound, ICMP network and consuming application.
+The last link is now saved automatically and restored on launch, including closing immediately after pasting.
+Only DPAPI CurrentUser-protected ciphertext is written to
+`%LOCALAPPDATA%/namedP/profile.dat`, with atomic replacement.
+It belongs to your Windows account, not to the install directory; Setup and portable copies share it.
+A different Windows account cannot normally decrypt it. Local processes running as you can access your data;
+this is not protection from a compromised account.
 
-## Install or run portable
+**Forget** or clearing the field removes the saved link. No automatic connection occurs on startup.
+Unreadable data is reported rather than silently discarded. Keep a backup configuration link.
+The link stays masked in the UI and is passed to the engine through stdin, never process arguments.
+Uninstall preserves these account-local preferences; use Forget before uninstalling if desired.
 
-Download `namedP-0.3.0-alpha-windows-x64-setup.exe` for the installer (choose the folder and shortcuts), or extract every file from the ZIP for portable use. Close namedP before installing/uninstalling. Setup and the app are unsigned alpha builds, so SmartScreen/UAC warnings are possible; Wintun is supplier-signed. Uninstall removes installed app files/shortcuts, not your separate portable copies or LocalAppData settings. Do not run both copies together.
+## Modes, tests and Gaming
 
-Use **Test delay** to request https://www.gstatic.com/generate_204 through the profile; only verified TLS + HTTP 204 returns milliseconds. It is not game ping or download speed, and failures leave an active VPN running. Gaming is opt-in and requires reconnecting; shorter UDP queues may drop stale packets under load. HTTP outbounds cannot carry game UDP. Update the panel to 0.4.2 for its UDP scheduling improvements.
+- VPN forwards **IPv4 TCP/UDP** with Wintun + pinned tun2socks 2.6.0.
+  A physical /32 or /128 endpoint route prevents recursive tunneling.
+  Other Internet IPv6 is blocked while the exact outer endpoint and essential local ICMPv6 remain reachable.
+  More-specific LAN routes remain; this is not a strict LAN kill switch.
+- Proxy exposes local SOCKS5 TCP CONNECT + UDP ASSOCIATE on `127.0.0.1:<lport>`.
+  Configure apps to use SOCKS5; HTTP proxy negotiation is not implemented.
+- **Test delay** sends verified TLS + HTTP to `https://www.gstatic.com/generate_204`
+  through the selected profile/outbound, not a direct fallback. Only HTTP 204 produces milliseconds.
+  The timer includes TCP, TLS and response headers, excludes prior authentication,
+  and is not game ping or a speed test. A failed test leaves the VPN running.
+- **Gaming** is optional. Reconnect to apply 32-packet UDP queues and a 150 ms queued-packet age limit.
+  Loss can increase under load and lower ping is not guaranteed. HTTP outbounds cannot carry UDP.
+  NamedICMP web panel 0.4.2 includes the matching UDP scheduling improvements.
 
-The reported Windows error was reproduced against NetSecurity: `::/0` is rejected. The new guard uses accepted `/1` prefixes and tests every generated IPv6 guard with real disabled rules. VPN setup errors now name the stage. CI also validates real Wintun address/DNS setup and EOF cleanup, while mocking global routes to preserve runner connectivity.
+## Appearance and cleanup
 
-## Status and verification
+System theme is the default; Dark and Light override it. The shared forest/mint palette,
+quiet companion card, clear profile/relay/traffic hierarchy and themed controls
+keep the interface compact. The dachshund idles, runs while connecting and wags when connected.
+Button/mascot animations respect Windows reduced-motion preferences.
 
-The client version is **namedP 0.3.0-alpha**, independently versioned from
-the NamedICMP web panel (currently 0.4.0). Client tags use `namedp-v*`, while
-panel tags use `v*`. The client has a separate release and download archive.
-This is not a claim of bug-free VPN operation. The migrated CI is prepared to build Windows
-and Linux, tests protocol/profile behavior and renders both themes. A public-server
-Windows test (TCP/UDP, DNS/IPv6 leak checks, throughput, forced crash cleanup,
-reconnect and Windows Defender interaction) is required before recommending it
-for sensitive use. The app is not Authenticode signed; the Wintun driver is signed
-by its supplier. Release archives include SHA256 checksums and dependency licenses.
+A separate guardian removes only its session-created routes/firewall rules on normal disconnect,
+engine failure or GUI EOF. Original adapter DNS is not edited. Power loss, forced guardian termination,
+sleep/resume and vendor firewall/network variations still need real-device acceptance.
+The known NetSecurity `::/0` error is fixed using accepted /1 prefixes.
+
+## Release and signing
+
+The Windows app and Android APK share one **namedp-v1.0.0 stable GitHub release**.
+The web panel keeps a separate version and does not download client packages during installation.
+Windows Setup/app are not publisher Authenticode signed; SmartScreen/UAC warnings may appear.
+Wintun is supplier-signed. Checksums and dependency licenses ship with the packages.
+Stable metadata is not a security audit or a promise of bug-free network behavior.
 
 ## Build
 
@@ -60,24 +67,16 @@ On Windows with Go 1.26+ and .NET SDK 8:
 ```
 dotnet publish windows/namedP/namedP.csproj -c Release -r win-x64 --self-contained true -o dist/namedP
 go build -o dist/namedP/namedp-engine.exe ./cmd/namedp-engine
-go test ./internal/client ./internal/reliable ./internal/wire
 dotnet run --project windows/namedP.Smoke -c Release
 ```
 
-Server compatibility is maintained by the wire contract, not a source dependency.
-
-Bundle tun2socks v2.6.0, amd64 wintun.dll v0.14.1 and their licenses as in
-`.github/workflows/windows.yml`. Keep all files beside namedP.exe.
+Bundle tun2socks 2.6.0, amd64 Wintun 0.14.1 and licenses as in the Windows workflow.
+The shared release gates both platforms on their tests before publishing.
 
 ## فارسی
 
-دو بسته وجود دارد: Setup EXE با انتخاب محل نصب، و ZIP پوشه‌ای که باید کامل استخراج شود. «Test delay» درخواست HTTPS را از مسیر همان کانفیگ می‌فرستد. گزینهٔ Gaming اختیاری است و برای اعمال باید دوباره وصل شوید. خطای prefix فایروال بازتولید و اصلاح شده است. برنامه و نصب‌کننده هنوز امضای ناشر ندارند و نسخهٔ آلفا هستند.
-
-کل فایل ZIP را استخراج و `namedP.exe` را با دسترسی مدیر اجرا کنید. لینک کامل
-پنل را بچسبانید؛ حالت VPN یا پروکسی از خود کانفیگ خوانده می‌شود. حالت VPN ترافیک
-TCP و UDP برنامه‌ها روی IPv4 را از تونل می‌فرستد؛ آدرس اتصال بیرونی می‌تواند IPv4 یا IPv6 باشد. برای جلوگیری از نشت، سایر مقصدهای اینترنت IPv6 موقتاً
-مسدود می‌شوند، اما آدرس دقیق اتصال و ICMPv6 ضروری محلی حفظ می‌شوند. مسیرهای محلی LAN باقی می‌مانند. حالت پروکسی فقط برنامه‌هایی را
-پوشش می‌دهد که SOCKS5 آن را تنظیم کرده‌اند. تم اولیه از ویندوز گرفته می‌شود.
-این نسخه آلفا است؛ آزمون واقعی اتصال، سرعت، DNS و پاک‌سازی پس از کرش روی
-ویندوز هنوز باید انجام شود. بدون این آزمون‌ها ادعای «بدون باگ» نداریم.
+نسخهٔ ۱٫۰٫۰ ویندوز و اندروید در یک ریلیز عادی منتشر می‌شوند. ویندوز دو بستهٔ نصبی و ZIP پوشه‌ای دارد.
+لینک بعد از بستن برنامه حفظ می‌شود و با محافظت حساب ویندوز ذخیره می‌شود؛ **Forget** آن را پاک می‌کند.
+VPN یا پروکسی از کانفیگ خوانده می‌شود. ظاهر روشن/تیره، کارت‌ها و نمایش تأخیر/ترافیک مرتب‌تر شده‌اند؛
+Gaming و تست HTTPS حفظ شده‌اند. ویندوز هنوز امضای ناشر ندارد. کانفیگ پشتیبان نگه دارید.
 

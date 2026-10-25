@@ -20,7 +20,7 @@ import (
 
 type config struct { Link string `json:"link"`; Mode string `json:"mode"`; TunSocket string `json:"tun_socket"`; TunBinary string `json:"tun_binary"`; ProbeOnly bool `json:"probe_only"`; RelayDelayOnly bool `json:"relay_delay_only"`;GamingMode bool `json:"gaming_mode"` }
 func main(){
- if len(os.Args)==2 && os.Args[1]=="--version"{fmt.Println("0.2.2-alpha");return}
+ if len(os.Args)==2 && os.Args[1]=="--version"{fmt.Println("1.0.0");return}
  if len(os.Args)==2 && os.Args[1]=="--self-test-relay-roots"{
   if err:=androidrelay.ValidateTLSRoots();err!=nil{fmt.Fprintln(os.Stderr,err);os.Exit(1)}
   fmt.Println("relay-roots-ready");return

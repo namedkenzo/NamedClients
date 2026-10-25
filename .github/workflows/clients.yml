@@ -1,0 +1,52 @@
+name: namedP clients · build, verify and release
+on:
+  push:
+    branches: [main, client-polish]
+  pull_request:
+  workflow_dispatch:
+permissions:
+  contents: read
+concurrency:
+  group: namedp-clients-${{ github.ref }}
+  cancel-in-progress: true
+jobs:
+  windows:
+    uses: ./.github/workflows/windows.yml
+  android:
+    uses: ./.github/workflows/android.yml
+  release:
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main' && contains(github.event.head_commit.message, '[release-clients]')
+    needs: [windows, android]
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/download-artifact@v8
+        with:
+          name: namedP-windows-x64
+          path: packages/windows
+      - uses: actions/download-artifact@v8
+        with:
+          name: namedP-android-release
+          path: packages/android
+      - uses: actions/download-artifact@v8
+        with:
+          name: namedP-ui-previews
+          path: previews/windows
+      - uses: actions/download-artifact@v8
+        with:
+          name: namedP-android-ui-previews
+          path: previews/android
+      - name: Publish one stable Latest release for both clients
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          node scripts/test_client_release.cjs
+          version=$(tr -d '\r\n' < windows/namedP/VERSION)
+          mkdir release-assets
+          cp packages/windows/*.zip packages/windows/*setup.exe packages/android/*.apk release-assets/
+          for file in previews/windows/*.png; do cp "$file" "release-assets/windows-$(basename "$file")"; done
+          for file in previews/android/*.png; do cp "$file" "release-assets/android-$(basename "$file")"; done
+          (cd release-assets && sha256sum *.exe *.zip *.apk > SHA256SUMS)
+          gh release create "namedp-v$version" release-assets/* --target "$GITHUB_SHA" --latest --title "namedP $version · Windows + Android" --notes-file "docs/RELEASE-namedp-v$version.md"
