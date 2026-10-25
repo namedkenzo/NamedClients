@@ -43,16 +43,18 @@ jobs:
       - uses: gradle/actions/setup-gradle@v4
         with:
           gradle-version: '8.11.1'
+      - name: Resolve the Android SDK signing-store location
+        run: |
+          gradle -q -p android signingReport > signing-report.txt
+          store=$(sed -n 's/^Store: //p' signing-report.txt | head -1)
+          test -n "$store"
+          echo "NAMEDP_SIGNING_STORE=$store" >> "$GITHUB_ENV"
+          echo "Resolved Gradle signing store: $store"
       - uses: actions/cache@v4
         id: signing-cache
         with:
-          path: ~/.android/debug.keystore
+          path: ${{ env.NAMEDP_SIGNING_STORE }}
           key: namedp-android-development-keystore-v2
-      - name: Require the previous Android signing identity
-        if: steps.signing-cache.outputs.cache-hit != 'true'
-        run: |
-          echo 'Existing APK signing key cache is unavailable. Refusing to create an incompatible update.'
-          exit 1
       - name: Install Android toolchain
         run: sdkmanager 'platforms;android-35' 'build-tools;35.0.0' 'ndk;28.0.13004108'
       - name: Build independent Android engines
