@@ -1,6 +1,6 @@
 # namedP for Android
 
-**0.1.3-alpha development** implementation. Android 8+ (API 26), arm64 phones and x86_64 emulators. The APK is debug-signed for testing, not a production/Play Store release.
+**0.2.0-alpha development** implementation. Android 8+ (API 26), arm64 phones and x86_64 emulators. The APK is debug-signed for testing, not a production/Play Store release.
 
 ## Experience
 
@@ -45,7 +45,7 @@ CI additionally runs emulator interface checks and captures both themes. Connect
 
 ## Signing and publication
 
-Both client sources may now be public at the owner's request. Android has its own `android-v0.1.3-alpha` development release; Windows stays unchanged. CI caches the development debug key for test builds; production distribution requires owner-controlled signing secrets. Never put signing keys or actual profiles in Git.
+Both client sources may now be public at the owner's request. Android has its own `android-v0.2.0-alpha` development release; Windows stays unchanged. CI caches the development debug key for test builds; production distribution requires owner-controlled signing secrets. Never put signing keys or actual profiles in Git.
 
 ## فارسی
 
@@ -54,3 +54,7 @@ Both client sources may now be public at the owner's request. Android has its ow
 برای افزودن اتصال، لینک کامل Config پنل را کپی کنید و Paste، سپس اتصال را بزنید. دکمهٔ + برای ورود دستی سرور و رمز است؛ نام اختیاری است. لینک ناقص با پیام مشخص رد می‌شود و هیچ اتصال ساختگی نمایش داده نمی‌شود.
 
 Numeric credentials remain 1–2147483647, as required by the existing signed 32-bit wire format. Longer values are not silently shortened. Server-side speed-test stability changes and network tuning are in [NamedICMP v0.3.1](https://github.com/namedkenzo/NamedICMP/releases/tag/v0.3.1), not this APK.
+
+## IPv6 endpoints
+
+The selected family is preserved in Details and sent to the ICMPv6 ping socket. Literals use `[IPv6]` in URIs, but the host field accepts a bare IPv6 address. Domains selected as IPv6 resolve AAAA only. The kernel supplies the Echo checksum/identifier. A socket opening test is not an end-to-end real-device VPN/throughput test. The advanced web-panel reader is a separate Linux-only setting, not a client-side NEW mode.

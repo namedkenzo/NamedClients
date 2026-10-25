@@ -129,7 +129,7 @@ public partial class MainWindow : Window
             connecting = false; connected = true; connectedAt = DateTime.UtcNow;
             Dog.State = "connected"; Dog.InvalidateVisual(); StateLabel.Text = "●  Connected";
             Headline.Text = "You're in good company.";
-            Hint.Text = fullVpn ? "Full-device IPv4 VPN · TCP + UDP · IPv6 blocked" : $"SOCKS5 · 127.0.0.1:{port} · TCP + UDP";
+            Hint.Text = fullVpn ? "Full-device IPv4 VPN · TCP + UDP · IPv6 transport guarded" : $"SOCKS5 · 127.0.0.1:{port} · TCP + UDP";
             ConnectButton.Content = "Disconnect";
         }
         catch (OperationCanceledException) { }

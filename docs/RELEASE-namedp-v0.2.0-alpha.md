@@ -8,3 +8,8 @@ of complete inner IPv6 forwarding. UI design is unchanged.
 
 Build, loopback and guard-range checks gate publication. Real Windows/VPS routing,
 DNS and cleanup acceptance remain necessary. Extract all files; run as Administrator.
+
+The Windows loopback responder also handles the kernel-reflected probe when
+Winsock does not expose Echo Requests to that raw receiver. It returns the
+authenticated protocol reply, rather than treating ordinary kernel ping replies
+as a successful tunnel handshake.

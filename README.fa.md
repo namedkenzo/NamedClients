@@ -6,8 +6,8 @@
 
 | پلتفرم | وضعیت | محل کد |
 | --- | --- | --- |
-| ویندوز ۱۰/۱۱، x64 | namedP نسخهٔ `0.1.0-alpha` | [`windows/namedP`](windows/namedP) |
-| اندروید ۸ به بالا، arm64 | APK آزمایشی `0.1.3-alpha` | [`android`](android) · [دانلود](https://github.com/namedkenzo/NamedClients/releases/tag/android-v0.1.3-alpha) |
+| ویندوز ۱۰/۱۱، x64 | namedP نسخهٔ `0.2.0-alpha` | [`windows/namedP`](windows/namedP) |
+| اندروید ۸ به بالا، arm64 | APK آزمایشی `0.2.0-alpha` | [`android`](android) · [دانلود](https://github.com/namedkenzo/NamedClients/releases/tag/android-v0.2.0-alpha) |
 
 ## ویندوز
 
@@ -29,9 +29,9 @@
 
 لینک Config پنل را کپی کنید ← **Paste** ← **اتصال**. دکمهٔ **+** برای ورود دستی سرور و رمز عددی یا رمزنگاری است؛ نام اختیاری است.
 
-نسخهٔ اولیهٔ اندروید با رابط تازه، Home/Connections/Settings، متن‌های فارسی/انگلیسی، تم خودکار سیستم و داچهوند متحرک ساخته شده است. APK امضای توسعه دارد و نسخهٔ تولیدی یا Play Store نیست. تست رابط و اجرای هسته بدون روت روی شبیه‌ساز پاس شده‌اند؛ اتصال واقعی گوشی به VPS، سرعت و نشت شبکه هنوز به آزمون نیاز دارند. [راهنمای اندروید](android/README.md) · [دانلود APK آزمایشی](https://github.com/namedkenzo/NamedClients/releases/tag/android-v0.1.3-alpha).
+نسخهٔ اولیهٔ اندروید با رابط تازه، Home/Connections/Settings، متن‌های فارسی/انگلیسی، تم خودکار سیستم و داچهوند متحرک ساخته شده است. APK امضای توسعه دارد و نسخهٔ تولیدی یا Play Store نیست. تست رابط و اجرای هسته بدون روت روی شبیه‌ساز پاس شده‌اند؛ اتصال واقعی گوشی به VPS، سرعت و نشت شبکه هنوز به آزمون نیاز دارند. [راهنمای اندروید](android/README.md) · [دانلود APK آزمایشی](https://github.com/namedkenzo/NamedClients/releases/tag/android-v0.2.0-alpha).
 
-[تصویر روشن](https://github.com/namedkenzo/NamedClients/releases/download/android-v0.1.3-alpha/light-idle.png) · [تصویر تیره](https://github.com/namedkenzo/NamedClients/releases/download/android-v0.1.3-alpha/dark-idle.png). ظاهر و امکانات ویندوز در این مرحله تغییر نکرده‌اند.
+[تصویر روشن](https://github.com/namedkenzo/NamedClients/releases/download/android-v0.2.0-alpha/light-idle.png) · [تصویر تیره](https://github.com/namedkenzo/NamedClients/releases/download/android-v0.2.0-alpha/dark-idle.png). ظاهر و امکانات ویندوز در این مرحله تغییر نکرده‌اند.
 
 ## کلاینت‌های دیگر PingTunnel
 
@@ -40,3 +40,5 @@
 
 این مخزن فقط برای کلاینت‌هاست. نصب‌کنندهٔ وب‌پنل در
 [NamedICMP](https://github.com/namedkenzo/NamedICMP) نگهداری می‌شوند.
+
+نسخهٔ ۰.۲ از کانفیگ IPv6 و دامنه با رکورد AAAA و پارامتر `family=ipv6` پشتیبانی می‌کند؛ وب‌پنل باید نسخهٔ ۰.۴ یا جدیدتر باشد. قالب آی‌پی در لینک، `[IPv6]` است. آزمایش روی گوشی/ویندوز و VPS واقعی همچنان لازم است.
