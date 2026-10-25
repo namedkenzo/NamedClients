@@ -44,7 +44,24 @@ class ProfileTest {
   assertEquals("credential",failure("pingtunnel://example.com?encrypt_key=private").field)
  }
  @Test fun refusesAmbiguousAliasesAndMalformedLinks() {
-  for(link in listOf("pingtunnel://example.com?key=1&local_port=1080&lport=1081","pingtunnel://example.com?encrypt=aes128&enc=aes256","pingtunnel://example.com?key=0","pingtunnel://example.com?key=2147483648","pingtunnel://example.com?key=123#fragment","pingtunnel://example.com?key=%ZZ","pingtunnel://example.com?key=123&mode=proxy_per_app"))failure(link)
+  for(link in listOf("pingtunnel://example.com?key=1&local_port=1080&lport=1081","pingtunnel://example.com?encrypt=aes128&enc=aes256","pingtunnel://example.com?key=0","pingtunnel://example.com?key=2147483648","pingtunnel://example.com?key=123#fragment","pingtunnel://example.com?key=%ZZ","pingtunnel://example.com?key=123&mode=other"))failure(link)
+ }
+ @Test fun modeIsOwnedByTheProfileAndPerAppOnlyChangesLocalRouting() {
+  for(mode in listOf("vpn","proxy","proxy_per_app")) {
+   val link=Profile.manualLink("example.com","1080",mode,"none","123",listOf("org.example.browser","org.example.chat"))
+   val p=Profile("id","name",link)
+   assertEquals(mode,p.mode)
+   assertEquals(if(mode=="proxy")"proxy"else"vpn",Profile("id","name",p.engineLink()).mode)
+   assertFalse(p.engineLink().contains("apps="))
+   if(mode=="proxy_per_app")assertEquals(2,p.apps.size)else assertTrue(p.apps.isEmpty())
+  }
+ }
+ @Test fun detailsCanRoundTripEachCredentialWithoutChangingTheKey() {
+  val secret=Base64.getEncoder().encodeToString(ByteArray(32){0xfb.toByte()})
+  val link=Profile.normalize("pingtunnel://example.com?mode=vpn&encrypt=aes256&encrypt_key="+java.net.URLEncoder.encode(secret,"UTF-8"))
+  val profile=Profile("id","name",link);val q=profile.parameters()
+  assertEquals(link,Profile.manualLink(profile.host,profile.port.toString(),profile.mode,q["encrypt"]!!,q["encrypt_key"]!!))
+  failure("pingtunnel://example.com?key=123&mode=proxy_per_app&apps=bad/package")
  }
  @Test fun acceptsEachCredentialMode() {
   Profile.validate("pingtunnel://example.com?key=123&mode=proxy")

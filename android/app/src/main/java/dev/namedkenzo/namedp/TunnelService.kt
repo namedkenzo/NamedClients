@@ -28,27 +28,27 @@ class TunnelService: VpnService() {
         if(intent==null || intent.action=="stop") { stopTunnel();return START_NOT_STICKY }
         if(engine!=null || TunnelStatus.snapshot.state=="connecting") return START_NOT_STICKY
         val link = intent.getStringExtra("link") ?: return START_NOT_STICKY
-        val mode = intent.getStringExtra("mode") ?: "vpn"
         TunnelStatus.snapshot=TunnelSnapshot("connecting","Checking your tunnel…")
         foreground("Connecting…")
         val token = generation.incrementAndGet()
-        pool.execute { startTunnel(link,mode,token) }
+        pool.execute { startTunnel(link,token) }
         return START_NOT_STICKY
     }
     private fun current(token:Int) = generation.get()==token
-    private fun startTunnel(link:String,mode:String,token:Int) {
+    private fun startTunnel(link:String,token:Int) {
         try {
             val normalizedLink=Profile.normalize(link)
-            require(mode in setOf("vpn","proxy"))
+            val profile=Profile("","",normalizedLink);val mode=profile.mode
+            if(mode=="proxy_per_app")require(profile.apps.isNotEmpty() && packageName !in profile.apps){"Select at least one application (not namedP) in connection details"}
             val nativeDir=applicationInfo.nativeLibraryDir
             val executable=File(nativeDir,"libnamedp.so")
             val bridge=File(nativeDir,"libtun2socks.so")
-            check(executable.isFile && (mode!="vpn" || bridge.isFile)) { "This APK is missing its native engine" }
+            check(executable.isFile && (mode=="proxy" || bridge.isFile)) { "This APK is missing its native engine" }
             val socketName="namedp-"+UUID.randomUUID().toString().replace("-", "")
-            synchronized(lock) { if(!current(token))return; if(mode=="vpn") socket=LocalServerSocket(socketName) }
+            synchronized(lock) { if(!current(token))return; if(mode!="proxy") socket=LocalServerSocket(socketName) }
             val process=ProcessBuilder(executable.absolutePath).directory(filesDir).start()
             synchronized(lock) { if(!current(token)){process.destroy();return};engine=process }
-            val input=JSONObject().put("link",normalizedLink).put("mode",mode).put("tun_socket",socketName).put("tun_binary",bridge.absolutePath)
+            val input=JSONObject().put("link",profile.engineLink()).put("mode",if(mode=="proxy")"proxy"else"vpn").put("tun_socket",socketName).put("tun_binary",bridge.absolutePath)
             process.outputStream.write((input.toString()+"\n").toByteArray(Charsets.UTF_8));process.outputStream.flush()
             val stderr=StringBuilder()
             pool.execute { process.errorStream.bufferedReader().useLines { lines -> lines.forEach { line -> synchronized(stderr){if(stderr.length<1500)stderr.append(line).append('\n')} } } }
@@ -59,10 +59,10 @@ class TunnelService: VpnService() {
                 if(!current(token))return@forEach
                 val event=JSONObject(line)
                 when(event.optString("event")) {
-                    "proxy_ready" -> if(mode=="vpn") establishVpn(token)
+                    "proxy_ready" -> if(mode!="proxy") establishVpn(token,profile)
                     "ready" -> {
                         if(current(token)) {
-                            TunnelStatus.snapshot=TunnelSnapshot("connected",if(mode=="vpn")"Device VPN · TCP + UDP" else "SOCKS5 · 127.0.0.1:${event.getInt("port")}",since=SystemClock.elapsedRealtime())
+                            TunnelStatus.snapshot=TunnelSnapshot("connected",if(mode=="vpn")"Device VPN · TCP + UDP" else if(mode=="proxy_per_app")"Selected apps · TCP + UDP" else "SOCKS5 · 127.0.0.1:${event.getInt("port")}",since=SystemClock.elapsedRealtime())
                             ui.post { if(current(token))foreground("Connected · $mode") }
                         }
                     }
@@ -79,14 +79,17 @@ class TunnelService: VpnService() {
             }
         } catch(error:Exception) { fail(error.message ?: "Could not start the tunnel",token) }
     }
-    private fun establishVpn(token:Int) {
+    private fun establishVpn(token:Int,profile:Profile) {
         if(!current(token))return
-        val descriptor=Builder().setSession("namedP").setMtu(1280)
+        val builder=Builder().setSession("namedP").setMtu(1280)
             .addAddress("198.18.0.1",32).addRoute("0.0.0.0",0)
             .addAddress("fd42:6e70::1",128).addRoute("::",0)
             .addDnsServer("1.1.1.1").addDnsServer("1.0.0.1")
-            .addDisallowedApplication(packageName)
-            .establish() ?: error("VPN permission is required")
+        if(profile.mode=="proxy_per_app") {
+            require(profile.apps.isNotEmpty() && packageName !in profile.apps)
+            profile.apps.forEach{builder.addAllowedApplication(it)}
+        } else builder.addDisallowedApplication(packageName)
+        val descriptor=builder.establish() ?: error("VPN permission is required")
         val server:LocalServerSocket
         synchronized(lock) {
             if(!current(token)){descriptor.close();return}

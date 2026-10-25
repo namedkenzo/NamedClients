@@ -68,6 +68,7 @@ jobs:
             adb pull /sdcard/Pictures/namedP-tests/preview-dark-idle.png dist/android/previews/dark-idle.png
             adb pull /sdcard/Pictures/namedP-tests/preview-dark-connecting.png dist/android/previews/dark-connecting.png
             adb pull /sdcard/Pictures/namedP-tests/preview-dark-connected-preview.png dist/android/previews/dark-connected-preview.png
+            adb pull /sdcard/Pictures/namedP-tests/preview-details.png dist/android/previews/details.png
             node scripts/check_png.cjs dist/android/previews
       - name: Package development APK
         run: |
@@ -80,6 +81,7 @@ jobs:
         run: |
           echo "NAMEDP_LIGHT_PREVIEW=$(base64 -w0 dist/android/previews/light-idle.png)"
           echo "NAMEDP_DARK_PREVIEW=$(base64 -w0 dist/android/previews/dark-idle.png)"
+          echo "NAMEDP_DETAILS_PREVIEW=$(base64 -w0 dist/android/previews/details.png)"
       - uses: actions/upload-artifact@v7
         with:
           name: namedP-android-development

@@ -1,6 +1,6 @@
 # namedP for Android
 
-**0.1.1-alpha development** implementation. Android 8+ (API 26), arm64 phones and x86_64 emulators. The APK is debug-signed for testing, not a production/Play Store release.
+**0.1.2-alpha development** implementation. Android 8+ (API 26), arm64 phones and x86_64 emulators. The APK is debug-signed for testing, not a production/Play Store release.
 
 ## Experience
 
@@ -16,7 +16,10 @@ A fresh connection-first layout inspired by the clear navigation of [Psiphon](ht
 
 1. Copy the complete `pingtunnel://` Config link from your panel.
 2. Tap **Paste** on Home or Connections. It imports the complete clipboard text directly, without an editor. The server is used as the default name.
-3. Tap **Connect**. Importing does not connect automatically.
+3. Tap **Connect**. Importing does not connect automatically. The URI's `mode` selects routing; there is no separate home mode toggle.
+4. Tap the configuration to edit Details, save/copy it or run an authenticated ICMP Test. Changing Details updates the same saved profile.
+
+VPN routes the device; Proxy exposes local SOCKS only. Proxy per app uses an Android application allowlist selected in Details. At least one app other than namedP is required; visible launcher apps are offered. The Test button checks handshake/latency, not speed or leaks.
 
 Alternatively tap **+** and enter the server IP/domain, optional name, numeric key **or** encryption method and Base64 key, local SOCKS port and connection mode. A missing key is not guessed or bypassed; copy the full link or obtain the key from your panel. Compatible encryption aliases are normalized before being sent to the engine. Secrets are not displayed in errors.
 
@@ -42,10 +45,12 @@ CI additionally runs emulator interface checks and captures both themes. Connect
 
 ## Signing and publication
 
-Both client sources may now be public at the owner's request. Android has its own `android-v0.1.1-alpha` development release; Windows stays unchanged. CI caches the development debug key for test builds; production distribution requires owner-controlled signing secrets. Never put signing keys or actual profiles in Git.
+Both client sources may now be public at the owner's request. Android has its own `android-v0.1.2-alpha` development release; Windows stays unchanged. CI caches the development debug key for test builds; production distribution requires owner-controlled signing secrets. Never put signing keys or actual profiles in Git.
 
 ## فارسی
 
 رابط جدید اندروید از ساختار سادهٔ اتصال و تنظیمات سایفون و مدیریت پروفایل PingTunnel Client الهام گرفته و با طراحی و داچهوند اختصاصی namedP ساخته شده است. برنامه حالت VPN دستگاه یا SOCKS5 محلی، تم خودکار/روشن/تیره و متن‌های فارسی/انگلیسی دارد. این نسخهٔ آلفا و امضاشده با کلید توسعه است و باید روی گوشی و سرور واقعی تست شود.
 
 برای افزودن اتصال، لینک کامل Config پنل را کپی کنید و Paste، سپس اتصال را بزنید. دکمهٔ + برای ورود دستی سرور و رمز است؛ نام اختیاری است. لینک ناقص با پیام مشخص رد می‌شود و هیچ اتصال ساختگی نمایش داده نمی‌شود.
+
+Numeric credentials remain 1–2147483647, as required by the existing signed 32-bit wire format. Longer values are not silently shortened. Server-side speed-test stability changes and network tuning are in [NamedICMP v0.3.1](https://github.com/namedkenzo/NamedICMP/releases/tag/v0.3.1), not this APK.

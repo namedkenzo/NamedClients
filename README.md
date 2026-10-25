@@ -7,7 +7,7 @@
 | Platform | Status | Source |
 | --- | --- | --- |
 | Windows 10/11 x64 | namedP `0.1.0-alpha` | [windows/namedP](windows/namedP) |
-| Android 8+ (arm64) | `0.1.1-alpha` development APK | [android](android) · [Download](https://github.com/namedkenzo/NamedClients/releases/tag/android-v0.1.1-alpha) |
+| Android 8+ (arm64) | `0.1.2-alpha` development APK | [android](android) · [Download](https://github.com/namedkenzo/NamedClients/releases/tag/android-v0.1.2-alpha) |
 
 ## Windows: connect in three steps
 
@@ -21,13 +21,15 @@ The app follows the system theme by default, supports dark/light overrides and i
 
 ## Android
 
+Routing follows the configuration's `mode`; the home screen has no separate mode switch. Tap a profile for Details, Save/Copy, authenticated ICMP Test, and VPN/Proxy/per-app options. Server-side burst control and reversible installer tuning are in [NamedICMP 0.3.1](https://github.com/namedkenzo/NamedICMP/releases/tag/v0.3.1).
+
 Copy the panel Config link → **Paste** → **Connect**. Or tap **+** to enter the server and numeric/encryption key manually. Names are optional.
 
-The Android app is now available as a **debug-signed development APK**, not a production/Play Store release. It has its own connection-first UI, Home/Connections/Settings, system/light/dark themes, Persian/English labels and animated dachshund. Profiles are protected with Android Keystore. Rootless ICMP depends on device/kernel support. [Android guide](android/README.md) · [Development APK](https://github.com/namedkenzo/NamedClients/releases/tag/android-v0.1.1-alpha).
+The Android app is now available as a **debug-signed development APK**, not a production/Play Store release. It has its own connection-first UI, Home/Connections/Settings, system/light/dark themes, Persian/English labels and animated dachshund. Profiles are protected with Android Keystore. Rootless ICMP depends on device/kernel support. [Android guide](android/README.md) · [Development APK](https://github.com/namedkenzo/NamedClients/releases/tag/android-v0.1.2-alpha).
 
 Emulator profile/UI tests and native rootless socket execution passed. A real phone/VPS connection, throughput and leak acceptance are still pending. Windows functionality was not redesigned as part of the Android work.
 
-[Light interface preview](https://github.com/namedkenzo/NamedClients/releases/download/android-v0.1.1-alpha/light-idle.png) · [Dark interface preview](https://github.com/namedkenzo/NamedClients/releases/download/android-v0.1.1-alpha/dark-idle.png)
+[Light interface preview](https://github.com/namedkenzo/NamedClients/releases/download/android-v0.1.2-alpha/light-idle.png) · [Dark interface preview](https://github.com/namedkenzo/NamedClients/releases/download/android-v0.1.2-alpha/dark-idle.png)
 
 ## Repository layout
 

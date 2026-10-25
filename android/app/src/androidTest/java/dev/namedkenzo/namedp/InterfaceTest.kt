@@ -22,6 +22,14 @@ import java.io.File
 
 @RunWith(AndroidJUnit4::class)
 class InterfaceTest {
+ private fun screenshot(activity:MainActivity,name:String){
+  val view=activity.window.decorView.rootView
+  val bitmap=Bitmap.createBitmap(view.width,view.height,Bitmap.Config.ARGB_8888);view.draw(Canvas(bitmap))
+  val values=ContentValues().apply{put(MediaStore.Images.Media.DISPLAY_NAME,"preview-"+name+".png");put(MediaStore.Images.Media.MIME_TYPE,"image/png");put(MediaStore.Images.Media.RELATIVE_PATH,"Pictures/namedP-tests");put(MediaStore.Images.Media.IS_PENDING,1)}
+  val uri=activity.contentResolver.insert(MediaStore.Images.Media.EXTERNAL_CONTENT_URI,values)?:error("No screenshot URI")
+  activity.contentResolver.openOutputStream(uri)!!.use{bitmap.compress(Bitmap.CompressFormat.PNG,100,it)}
+  activity.contentResolver.update(uri,ContentValues().apply{put(MediaStore.Images.Media.IS_PENDING,0)},null,null);bitmap.recycle()
+ }
  @Test fun pasteImportsWholeLinkWithoutEditorOrRequiredName() {
   val context=InstrumentationRegistry.getInstrumentation().targetContext
   context.getSharedPreferences("namedP-private",0).edit().clear().commit()
@@ -54,37 +62,68 @@ class InterfaceTest {
   context.getSharedPreferences("namedP-private",0).edit().clear().commit()
   context.getSharedPreferences("namedp-ui",0).edit().clear().commit()
   ActivityScenario.launch<MainActivity>(Intent(context,MainActivity::class.java)).use { scenario ->
-   scenario.onActivity { activity ->
-    activity.window.decorView.findViewWithTag<View>("manual-profile").performClick()
-   }
+   scenario.onActivity { it.window.decorView.findViewWithTag<View>("manual-profile").performClick() }
    InstrumentationRegistry.getInstrumentation().waitForIdleSync()
    scenario.onActivity { activity ->
-    val dialog=activity.manualDialogForTest()
-    val view=dialog.window!!.decorView
+    val view=activity.window.decorView
     view.findViewWithTag<EditText>("manual-server").setText("example.com")
     view.findViewWithTag<EditText>("manual-credential").setText("123456")
-    dialog.getButton(AlertDialog.BUTTON_POSITIVE).performClick()
+    view.findViewWithTag<View>("manual-save").performClick()
     val saved=ProfileStore(activity).read()
-    assertTrue("Manual numeric save failed: "+view.findViewWithTag<TextView>("manual-error").text,saved.isNotEmpty())
+    assertTrue("Manual save failed: "+view.findViewWithTag<TextView>("manual-error").text,saved.isNotEmpty())
     assertEquals("example.com",saved.single().name)
-   }
-   InstrumentationRegistry.getInstrumentation().waitForIdleSync()
-   scenario.onActivity { activity ->
+    assertEquals("vpn",saved.single().mode)
+    view.findViewWithTag<View>("detail-back").performClick()
     activity.window.decorView.findViewWithTag<View>("manual-profile").performClick()
    }
    InstrumentationRegistry.getInstrumentation().waitForIdleSync()
+   scenario.onActivity { it.window.decorView.findViewWithTag<Spinner>("manual-auth").setSelection(2) }
+   InstrumentationRegistry.getInstrumentation().waitForIdleSync()
    scenario.onActivity { activity ->
-    activity.manualDialogForTest().window!!.decorView.findViewWithTag<Spinner>("manual-auth").setSelection(2)
+    val view=activity.window.decorView
+    view.findViewWithTag<EditText>("manual-server").setText("example.com")
+    view.findViewWithTag<EditText>("manual-credential").setText(java.util.Base64.getEncoder().encodeToString(ByteArray(32){0xfb.toByte()}))
+    view.findViewWithTag<View>("manual-save").performClick()
+    val saved=ProfileStore(activity).read()
+    assertEquals("Encrypted save failed: "+view.findViewWithTag<TextView>("manual-error").text,2,saved.size)
+    assertTrue(saved.last().link.contains("&encrypt=aes256&encrypt_key="));assertFalse(saved.last().link.contains("&key="))
+   }
+  }
+  context.getSharedPreferences("namedP-private",0).edit().clear().commit()
+  context.getSharedPreferences("namedp-ui",0).edit().clear().commit()
+ }
+ @Test fun importedModeSurvivesRestartAndDetailsEditUpdatesSameProfile() {
+  val context=InstrumentationRegistry.getInstrumentation().targetContext
+  context.getSharedPreferences("namedP-private",0).edit().clear().commit()
+  context.getSharedPreferences("namedp-ui",0).edit().clear().commit()
+  ActivityScenario.launch<MainActivity>(Intent(context,MainActivity::class.java)).use { scenario ->
+   scenario.onActivity { activity ->
+    activity.getSystemService(ClipboardManager::class.java).setPrimaryClip(ClipData.newPlainText("Demo","pingtunnel://example.com?mode=proxy&key=123456"))
+    activity.window.decorView.findViewWithTag<View>("paste-profile").performClick()
+    activity.getSharedPreferences("namedp-ui",0).edit().putString("mode","vpn").apply() // Legacy global toggle must not override the URI.
+   }
+   scenario.recreate()
+   scenario.onActivity { it.window.decorView.findViewWithTag<View>("profile-card").performClick() }
+   InstrumentationRegistry.getInstrumentation().waitForIdleSync()
+   var id=""
+   scenario.onActivity { activity ->
+    val view=activity.window.decorView
+    id=ProfileStore(activity).read().single().id
+    assertEquals(0,view.findViewWithTag<Spinner>("manual-mode").selectedItemPosition)
+    assertNotNull(view.findViewWithTag<View>("test-profile"))
+    view.findViewWithTag<Spinner>("manual-mode").setSelection(1)
    }
    InstrumentationRegistry.getInstrumentation().waitForIdleSync()
    scenario.onActivity { activity ->
-    val dialog=activity.manualDialogForTest();val view=dialog.window!!.decorView
-    view.findViewWithTag<EditText>("manual-server").setText("example.com")
-    view.findViewWithTag<EditText>("manual-credential").setText(java.util.Base64.getEncoder().encodeToString(ByteArray(32){0xfb.toByte()}))
-    dialog.getButton(AlertDialog.BUTTON_POSITIVE).performClick()
-    val encrypted=ProfileStore(activity).read().last().link
-    assertTrue(encrypted.contains("&encrypt=aes256&encrypt_key="));assertFalse(encrypted.contains("&key="))
+    activity.window.decorView.findViewWithTag<View>("manual-save").performClick()
+    val saved=ProfileStore(activity).read().single()
+    assertEquals(id,saved.id);assertEquals("vpn",saved.mode);assertTrue(saved.link.contains("&key=123456"))
+    activity.window.decorView.findViewWithTag<View>("copy-profile").performClick()
+    assertEquals(saved.link,activity.getSystemService(ClipboardManager::class.java).primaryClip!!.getItemAt(0).text.toString())
+    activity.getSystemService(ClipboardManager::class.java).clearPrimaryClip()
    }
+   InstrumentationRegistry.getInstrumentation().waitForIdleSync()
+   scenario.onActivity { screenshot(it,"details") }
   }
   context.getSharedPreferences("namedP-private",0).edit().clear().commit()
   context.getSharedPreferences("namedp-ui",0).edit().clear().commit()
