@@ -5,6 +5,7 @@
 AppId={{C9D683F3-BA6C-4418-8D45-E9492133B742}
 AppName=namedP
 AppVersion={#ClientVersion}
+VersionInfoVersion=0.3.0.0
 AppPublisher=namedkenzo
 AppPublisherURL=https://github.com/namedkenzo/NamedClients
 DefaultDirName={autopf}\namedP
@@ -29,6 +30,3 @@ Source: "..\..\dist\namedP\*"; DestDir: "{app}"; Flags: ignoreversion recursesub
 [Icons]
 Name: "{group}\namedP"; Filename: "{app}\namedP.exe"
 Name: "{autodesktop}\namedP"; Filename: "{app}\namedP.exe"; Tasks: desktopicon
-[UninstallDelete]
-; Session routes are cleaned by the running guardian, never by an uninstaller.
-Type: files; Name: "{app}\*.log"

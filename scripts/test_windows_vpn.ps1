@@ -28,5 +28,8 @@ foreach($prefix in @('192.0.2.25/32','0.0.0.0/1','128.0.0.0/1')){
 }
 $after=@(NetSecurity\Get-NetFirewallRule -Name 'namedP-*' -ErrorAction SilentlyContinue | Select-Object -ExpandProperty Name)
 if(@($after | Where-Object {$_ -notin $before}).Count){throw 'Firewall rules leaked after guardian exit'}
+for($attempt=0;$attempt -lt 20;$attempt++){
+ if(!@(Get-NetAdapter | Where-Object {$_.Name -like 'namedP-*'}).Count){break};Start-Sleep -Milliseconds 250
+}
 if(@(Get-NetAdapter | Where-Object {$_.Name -like 'namedP-*'}).Count){throw 'Wintun adapter leaked'}
 Write-Output 'Real Wintun, IP, DNS, firewall validation and guardian EOF cleanup passed; host default routes were not modified.'

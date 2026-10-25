@@ -6,14 +6,14 @@
 
 | Platform | Status | Source |
 | --- | --- | --- |
-| Windows 10/11 x64 | namedP `0.2.0-alpha` | [windows/namedP](windows/namedP) |
+| Windows 10/11 x64 | namedP `0.3.0-alpha` | [windows/namedP](windows/namedP) |
 | Android 8+ (arm64) | `0.2.2-alpha` development APK | [android](android) · [Download](https://github.com/namedkenzo/NamedClients/releases/tag/android-v0.2.2-alpha) |
 
 ## Windows: connect in three steps
 
-1. Download the ZIP from [Releases](https://github.com/namedkenzo/NamedClients/releases) and extract **all files**.
+1. Download the **Setup EXE** to choose an install folder, or extract **all files** from the portable ZIP in [Windows 0.3.0-alpha](https://github.com/namedkenzo/NamedClients/releases/tag/namedp-v0.3.0-alpha).
 2. Run `namedP.exe` as Administrator and paste the complete `pingtunnel://` profile exported by the panel.
-3. Choose **Full-device VPN** or **Local SOCKS5 proxy**, then Connect.
+3. Press Connect. The configuration's `mode` selects VPN or local SOCKS5; there is no manual override. Optional Gaming and HTTPS Test delay are available.
 
 The app follows the system theme by default, supports dark/light overrides and includes an animated dachshund companion. Its independent Go transport carries separate TCP/UDP flows and accepts either a numeric key or an encryption-only profile. Full VPN carries IPv4 application traffic over an IPv4 or IPv6 endpoint; other Internet IPv6 is guarded while the exact endpoint and essential local ICMPv6 remain reachable. More-specific LAN routes remain available. See the [Windows guide](docs/NAMEDP.md).
 

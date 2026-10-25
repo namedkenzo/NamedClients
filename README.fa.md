@@ -6,14 +6,14 @@
 
 | پلتفرم | وضعیت | محل کد |
 | --- | --- | --- |
-| ویندوز ۱۰/۱۱، x64 | namedP نسخهٔ `0.2.0-alpha` | [`windows/namedP`](windows/namedP) |
+| ویندوز ۱۰/۱۱، x64 | namedP نسخهٔ `0.3.0-alpha` | [`windows/namedP`](windows/namedP) |
 | اندروید ۸ به بالا، arm64 | APK آزمایشی `0.2.2-alpha` | [`android`](android) · [دانلود](https://github.com/namedkenzo/NamedClients/releases/tag/android-v0.2.2-alpha) |
 
 ## ویندوز
 
 فایل ZIP را از Releases دانلود و کامل استخراج کنید، سپس `namedP.exe` را
 با دسترسی Administrator اجرا کنید. لینک کامل `pingtunnel://` را از پنل
-کپی کنید و VPN کل سیستم یا پروکسی SOCKS5 را انتخاب کنید.
+کپی و اتصال را بزنید؛ حالت VPN یا SOCKS5 از خود کانفیگ خوانده می‌شود. نسخهٔ ۰٫۳ دو بستهٔ Setup EXE با انتخاب محل نصب و ZIP پوشه‌ای دارد. Gaming اختیاری و تست تأخیر HTTPS نیز اضافه شده‌اند.
 
 - تم پیش‌فرض مطابق سیستم، به‌همراه حالت روشن و تیره.
 - داچهوند متحرک برای حالت‌های آماده، اتصال و وصل‌شده.

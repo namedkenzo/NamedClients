@@ -1,14 +1,14 @@
 # namedP for Windows
 
 namedP is the dedicated Windows client for namedICMP. Download
-`namedP-0.2.0-alpha-windows-x64.zip` from the **namedP** release. Extract **the entire ZIP**
+`namedP-0.3.0-alpha-windows-x64.zip` from the **namedP** release. Extract **the entire ZIP**
 into a folder and launch `namedP.exe`. Windows requests Administrator permission
 for the raw ICMP socket and network adapter. Windows 10/11 x64 is the initial target.
 The .NET runtime is bundled. No Python, browser or upstream PingTunnel executable is required.
 
 Paste a complete `pingtunnel://` link exported by the panel. The field masks your
 credential and profiles are not saved to disk or passed in command-line arguments.
-Select **Full-device VPN** or **Local proxy**, then Connect. The encrypted or numeric
+The profile's `mode=vpn` or `mode=proxy` selects routing automatically; then Connect. The encrypted or numeric
 credential is validated with an ICMP handshake before the GUI shows Connected.
 
 - Full-device VPN sends IPv4 TCP and UDP through a Wintun adapter and tun2socks.
@@ -33,9 +33,17 @@ encrypted profiles omit the numeric password. TCP retries are ordered and dedupl
 UDP has a bounded 8192-byte datagram limit and no retransmission. UDP availability
 still depends on your server outbound, ICMP network and consuming application.
 
+## Install or run portable
+
+Download `namedP-0.3.0-alpha-windows-x64-setup.exe` for the installer (choose the folder and shortcuts), or extract every file from the ZIP for portable use. Close namedP before installing/uninstalling. Setup and the app are unsigned alpha builds, so SmartScreen/UAC warnings are possible; Wintun is supplier-signed. Uninstall removes installed app files/shortcuts, not your separate portable copies or LocalAppData settings. Do not run both copies together.
+
+Use **Test delay** to request https://www.gstatic.com/generate_204 through the profile; only verified TLS + HTTP 204 returns milliseconds. It is not game ping or download speed, and failures leave an active VPN running. Gaming is opt-in and requires reconnecting; shorter UDP queues may drop stale packets under load. HTTP outbounds cannot carry game UDP. Update the panel to 0.4.2 for its UDP scheduling improvements.
+
+The reported Windows error was reproduced against NetSecurity: `::/0` is rejected. The new guard uses accepted `/1` prefixes and tests every generated IPv6 guard with real disabled rules. VPN setup errors now name the stage. CI also validates real Wintun address/DNS setup and EOF cleanup, while mocking global routes to preserve runner connectivity.
+
 ## Status and verification
 
-The client version is **namedP 0.2.0-alpha**, independently versioned from
+The client version is **namedP 0.3.0-alpha**, independently versioned from
 the NamedICMP web panel (currently 0.4.0). Client tags use `namedp-v*`, while
 panel tags use `v*`. The client has a separate release and download archive.
 This is not a claim of bug-free VPN operation. The migrated CI is prepared to build Windows
@@ -63,8 +71,10 @@ Bundle tun2socks v2.6.0, amd64 wintun.dll v0.14.1 and their licenses as in
 
 ## فارسی
 
+دو بسته وجود دارد: Setup EXE با انتخاب محل نصب، و ZIP پوشه‌ای که باید کامل استخراج شود. «Test delay» درخواست HTTPS را از مسیر همان کانفیگ می‌فرستد. گزینهٔ Gaming اختیاری است و برای اعمال باید دوباره وصل شوید. خطای prefix فایروال بازتولید و اصلاح شده است. برنامه و نصب‌کننده هنوز امضای ناشر ندارند و نسخهٔ آلفا هستند.
+
 کل فایل ZIP را استخراج و `namedP.exe` را با دسترسی مدیر اجرا کنید. لینک کامل
-پنل را بچسبانید و VPN کل سیستم یا پروکسی محلی را انتخاب کنید. حالت VPN ترافیک
+پنل را بچسبانید؛ حالت VPN یا پروکسی از خود کانفیگ خوانده می‌شود. حالت VPN ترافیک
 TCP و UDP برنامه‌ها روی IPv4 را از تونل می‌فرستد؛ آدرس اتصال بیرونی می‌تواند IPv4 یا IPv6 باشد. برای جلوگیری از نشت، سایر مقصدهای اینترنت IPv6 موقتاً
 مسدود می‌شوند، اما آدرس دقیق اتصال و ICMPv6 ضروری محلی حفظ می‌شوند. مسیرهای محلی LAN باقی می‌مانند. حالت پروکسی فقط برنامه‌هایی را
 پوشش می‌دهد که SOCKS5 آن را تنظیم کرده‌اند. تم اولیه از ویندوز گرفته می‌شود.

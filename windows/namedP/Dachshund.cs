@@ -10,14 +10,17 @@ public sealed class Dachshund : FrameworkElement
     public string State { get; set; } = "idle";
     readonly Stopwatch clock = Stopwatch.StartNew();
     readonly EventHandler render;
+    long lastFrame;
     public Dachshund()
     {
-        render = (_, _) => { if (IsVisible && SystemParameters.ClientAreaAnimation) InvalidateVisual(); };
+        render = (_, _) => { long now=clock.ElapsedMilliseconds;if(IsVisible && SystemParameters.ClientAreaAnimation && now-lastFrame >= (State=="idle"?50:33)){lastFrame=now;InvalidateVisual();} };
         Loaded += (_, _) => CompositionTarget.Rendering += render;
         Unloaded += (_, _) => CompositionTarget.Rendering -= render;
     }
-    static Brush B(string hex) => new SolidColorBrush((Color)ColorConverter.ConvertFromString(hex));
-    static void Shape(DrawingContext d, string path, Brush fill, Pen? stroke = null) => d.DrawGeometry(fill, stroke, Geometry.Parse(path));
+    static readonly Dictionary<string,Brush> brushes=new();
+    static readonly Dictionary<string,Geometry> geometries=new();
+    static Brush B(string hex) {if(!brushes.TryGetValue(hex,out var brush)){var b=new SolidColorBrush((Color)ColorConverter.ConvertFromString(hex));b.Freeze();brush=b;brushes[hex]=brush;}return brush;}
+    static void Shape(DrawingContext d, string path, Brush fill, Pen? stroke = null) {if(!geometries.TryGetValue(path,out var geometry)){geometry=Geometry.Parse(path);geometry.Freeze();geometries[path]=geometry;}d.DrawGeometry(fill,stroke,geometry);}
     protected override void OnRender(DrawingContext d)
     {
         base.OnRender(d);
