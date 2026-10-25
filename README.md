@@ -7,7 +7,7 @@
 | Platform | Status | Source |
 | --- | --- | --- |
 | Windows 10/11 x64 | namedP `0.2.0-alpha` | [windows/namedP](windows/namedP) |
-| Android 8+ (arm64) | `0.2.1-alpha` development APK | [android](android) · [Download](https://github.com/namedkenzo/NamedClients/releases/tag/android-v0.2.1-alpha) |
+| Android 8+ (arm64) | `0.2.2-alpha` development APK | [android](android) · [Download](https://github.com/namedkenzo/NamedClients/releases/tag/android-v0.2.2-alpha) |
 
 ## Windows: connect in three steps
 
@@ -27,11 +27,11 @@ Routing follows the configuration's `mode`; the home screen has no separate mode
 
 Copy the panel Config link → **Paste** → **Connect**. Or tap **+** to enter the server and numeric/encryption key manually. Names are optional.
 
-The Android app is now available as a **debug-signed development APK**, not a production/Play Store release. It has its own connection-first UI, Home/Connections/Settings, system/light/dark themes, Persian/English labels and animated dachshund. Profiles are protected with Android Keystore. Rootless ICMP depends on device/kernel support. [Android guide](android/README.md) · [Development APK](https://github.com/namedkenzo/NamedClients/releases/tag/android-v0.2.1-alpha).
+The Android app is now available as a **debug-signed development APK**, not a production/Play Store release. It has its own connection-first UI, Home/Connections/Settings, system/light/dark themes, Persian/English labels and animated dachshund. Profiles are protected with Android Keystore. Rootless ICMP depends on device/kernel support. [Android guide](android/README.md) · [Development APK](https://github.com/namedkenzo/NamedClients/releases/tag/android-v0.2.2-alpha).
 
 Emulator profile/UI tests and native rootless socket execution passed. A real phone/VPS connection, throughput and leak acceptance are still pending. Windows functionality was not redesigned as part of the Android work.
 
-[Light interface preview](https://github.com/namedkenzo/NamedClients/releases/download/android-v0.2.1-alpha/light-idle.png) · [Dark interface preview](https://github.com/namedkenzo/NamedClients/releases/download/android-v0.2.1-alpha/dark-idle.png)
+[Light interface preview](https://github.com/namedkenzo/NamedClients/releases/download/android-v0.2.2-alpha/light-idle.png) · [Dark interface preview](https://github.com/namedkenzo/NamedClients/releases/download/android-v0.2.2-alpha/dark-idle.png)
 
 IPv6 endpoints are supported by namedP 0.2.0-alpha: use `pingtunnel://[IPv6]?lport=1080&mode=vpn&family=ipv6&key=...`, or a domain with an AAAA record and `family=ipv6`. Update the web panel to 0.4.0. Windows retains a physical endpoint bypass and guards other IPv6 traffic; real-device/VPS acceptance remains necessary.
 

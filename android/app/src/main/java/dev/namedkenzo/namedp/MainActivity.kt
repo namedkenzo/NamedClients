@@ -56,7 +56,7 @@ class MainActivity:Activity() {
         val state=snapshot();if(state.state!=lastState){lastState=state.state;if(page=="details"){updateDetailStatus()}else render()}
         traffic?.text="↑ ${bytes(state.upload)}     ↓ ${bytes(state.download)}"
         elapsed?.text=if(state.since>0){val seconds=(SystemClock.elapsedRealtime()-state.since)/1000;String.format(Locale.US,"%02d:%02d",seconds/60,seconds%60)}else "00:00"
-        handler.postDelayed(this,750)
+        handler.postDelayed(this,1000)
     }}
     override fun onCreate(savedInstanceState:Bundle?){
         super.onCreate(savedInstanceState)
@@ -78,6 +78,12 @@ class MainActivity:Activity() {
         background=RippleDrawable(ColorStateList.valueOf(if(night)0x22ffffff else 0x16000000),rounded(if(primary)accent else soft),null)
         minHeight=0;minimumHeight=0;minWidth=0;minimumWidth=0;setPadding(dp(12),dp(9),dp(12),dp(9))
         layoutParams=LinearLayout.LayoutParams(-1,dp(52));setOnClickListener{action()}
+        setOnTouchListener{view,event->
+            if(android.animation.ValueAnimator.areAnimatorsEnabled())when(event.actionMasked){
+                MotionEvent.ACTION_DOWN->view.animate().scaleX(0.97f).scaleY(0.97f).setDuration(90).setInterpolator(android.view.animation.DecelerateInterpolator()).start()
+                MotionEvent.ACTION_UP,MotionEvent.ACTION_CANCEL->view.animate().scaleX(1f).scaleY(1f).setDuration(170).setInterpolator(android.view.animation.DecelerateInterpolator()).start()
+            };false
+        }
     }
     private fun row():LinearLayout=LinearLayout(this).apply {orientation=LinearLayout.HORIZONTAL;gravity=Gravity.CENTER_VERTICAL;layoutParams=LinearLayout.LayoutParams(-1,-2)}
     private fun card():LinearLayout=LinearLayout(this).apply {orientation=LinearLayout.VERTICAL;background=rounded(surface);setPadding(dp(18),dp(17),dp(18),dp(17));layoutParams=LinearLayout.LayoutParams(-1,-2)}
@@ -170,6 +176,8 @@ class MainActivity:Activity() {
     }
     private fun settingsPage(parent:LinearLayout){
         parent.addView(text(tr("Make it yours","مطابق سلیقهٔ شما"),24f,ink,true));gap(parent,20)
+        parent.addView(Switch(this).apply{tag="gaming-mode";text=tr("Gaming · low-latency UDP","گیمینگ · UDP کم‌تأخیر");setTextColor(ink);isChecked=prefs.getBoolean("gaming",false);isEnabled=!active();setOnCheckedChangeListener{_,checked->prefs.edit().putBoolean("gaming",checked).apply()}})
+        parent.addView(text(tr("Reconnect to apply. Keeps UDP queues short and drops stale queued packets after 150 ms under load. May increase packet loss; not a guaranteed lower ping. Use Direct or UDP-capable SOCKS outbound, not HTTP. Pause downloads; per-app mode can include only your game.","برای اعمال دوباره وصل شوید. صف UDP کوتاه می‌شود و بسته‌های مانده بیش از ۱۵۰ میلی‌ثانیه حذف می‌شوند؛ ممکن است افت بسته بیشتر شود و کاهش پینگ تضمینی نیست. از خروجی مستقیم یا SOCKS دارای UDP استفاده کنید، نه HTTP. دانلودها را متوقف کنید؛ حالت برنامه‌ای می‌تواند فقط بازی را پوشش دهد."),12f,muted));gap(parent,14)
         parent.addView(button(tr("Appearance · ${prefs.getString("theme","system")}","ظاهر · ${prefs.getString("theme","system")}")){themePicker()});gap(parent,10)
         parent.addView(button(tr("Language · English / فارسی","زبان · English / فارسی")){dialog().setTitle("Language / زبان").setItems(arrayOf("English","فارسی")){_,i->prefs.edit().putString("language",if(i==0)"en"else"fa").apply();render()}.show()});gap(parent,18)
         parent.addView(card().apply{
@@ -353,7 +361,7 @@ class MainActivity:Activity() {
             val result=try{
                 process=ProcessBuilder(java.io.File(applicationInfo.nativeLibraryDir,"libnamedp.so").absolutePath).directory(filesDir).start()
                 synchronized(testLock){check(generation==testGeneration){"Test cancelled"};testProcess=process}
-                val input=org.json.JSONObject().put("link",profile.engineLink()).put("mode",if(profile.mode=="proxy")"proxy"else"vpn").put("relay_delay_only",true)
+                val input=org.json.JSONObject().put("link",profile.engineLink()).put("mode",if(profile.mode=="proxy")"proxy"else"vpn").put("relay_delay_only",true).put("gaming_mode",prefs.getBoolean("gaming",false))
                 process.outputStream.write((input.toString()+"\n").toByteArray(Charsets.UTF_8));process.outputStream.flush()
                 if(!process.waitFor(30,java.util.concurrent.TimeUnit.SECONDS)){process.destroyForcibly();error(tr("Relay test timed out","مهلت تست تأخیر تمام شد"))}
                 if(process.exitValue()!=0)error(process.errorStream.bufferedReader().readText().trim().take(180).ifBlank{tr("Relay test failed","تست تأخیر ناموفق بود")})

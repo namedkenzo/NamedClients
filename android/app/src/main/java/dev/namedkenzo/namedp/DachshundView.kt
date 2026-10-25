@@ -10,15 +10,15 @@ import kotlin.math.min
 
 class DachshundView(context: Context):View(context) {
     var state="idle"
+        set(value){field=value;contentDescription=if(value=="connected")"Happy dachshund, connected" else if(value=="connecting")"Running dachshund, connecting" else "Resting dachshund";invalidate()}
     var night=false
     private val p=Paint(Paint.ANTI_ALIAS_FLAG)
     private val started=SystemClock.elapsedRealtime()
-    private val animator=ValueAnimator.ofFloat(0f,1f).apply {duration=1600;repeatCount=ValueAnimator.INFINITE;addUpdateListener { if(isShown)invalidate() }}
-    override fun onAttachedToWindow(){super.onAttachedToWindow();if(ValueAnimator.areAnimatorsEnabled())animator.start()}
-    override fun onDetachedFromWindow(){animator.cancel();super.onDetachedFromWindow()}
-    override fun onWindowVisibilityChanged(visibility:Int){super.onWindowVisibilityChanged(visibility);if(visibility!=VISIBLE)animator.pause()else if(animator.isPaused)animator.resume()}
-    private fun fill(c:Canvas,color:String,block:(Paint)->Unit){p.color=Color.parseColor(color);p.style=Paint.Style.FILL;block(p)}
-    private fun path(c:Canvas,color:String,block:Path.()->Unit){val q=Path().apply(block);fill(c,color){c.drawPath(q,it)}}
+    private val colors=mutableMapOf<String,Int>()
+    private val scratch=Path()
+    override fun onWindowVisibilityChanged(visibility:Int){super.onWindowVisibilityChanged(visibility);if(visibility==VISIBLE)invalidate()}
+    private fun fill(c:Canvas,color:String,block:(Paint)->Unit){p.color=colors.getOrPut(color){Color.parseColor(color)};p.style=Paint.Style.FILL;block(p)}
+    private fun path(c:Canvas,color:String,block:Path.()->Unit){scratch.reset();scratch.block();fill(c,color){c.drawPath(scratch,it)}}
     override fun onDraw(c:Canvas){
         super.onDraw(c)
         val s=min(width/420f,height/250f)
@@ -49,6 +49,6 @@ class DachshundView(context: Context):View(context) {
         path(c,"#63C7B0"){moveTo(287f,134f);quadTo(298f,142f,316f,136f);lineTo(318f,144f);quadTo(300f,151f,285f,142f);close()}
         fill(c,"#EBC57F"){c.drawOval(303f,144f,311f,154f,it)}
         c.restore()
-        contentDescription=if(state=="connected")"Happy dachshund, connected" else if(state=="connecting")"Running dachshund, connecting" else "Resting dachshund"
+        if(isShown && windowVisibility==VISIBLE && ValueAnimator.areAnimatorsEnabled())postInvalidateDelayed(if(state=="idle")50L else 33L)
     }
 }

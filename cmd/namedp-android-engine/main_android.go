@@ -18,9 +18,9 @@ import (
  "namedp/internal/androidrelay"
 )
 
-type config struct { Link string `json:"link"`; Mode string `json:"mode"`; TunSocket string `json:"tun_socket"`; TunBinary string `json:"tun_binary"`; ProbeOnly bool `json:"probe_only"`; RelayDelayOnly bool `json:"relay_delay_only"` }
+type config struct { Link string `json:"link"`; Mode string `json:"mode"`; TunSocket string `json:"tun_socket"`; TunBinary string `json:"tun_binary"`; ProbeOnly bool `json:"probe_only"`; RelayDelayOnly bool `json:"relay_delay_only"`;GamingMode bool `json:"gaming_mode"` }
 func main(){
- if len(os.Args)==2 && os.Args[1]=="--version"{fmt.Println("0.2.1-alpha");return}
+ if len(os.Args)==2 && os.Args[1]=="--version"{fmt.Println("0.2.2-alpha");return}
  if len(os.Args)==2 && os.Args[1]=="--self-test-relay-roots"{
   if err:=androidrelay.ValidateTLSRoots();err!=nil{fmt.Fprintln(os.Stderr,err);os.Exit(1)}
   fmt.Println("relay-roots-ready");return
@@ -41,6 +41,7 @@ func run()error{
  if input.RelayDelayOnly { var stop context.CancelFunc;ctx,stop=context.WithTimeout(ctx,25*time.Second);defer stop() }
  go func(){io.Copy(io.Discard,os.Stdin);cancel()}()
  tunnel,e:=client.OpenAndroid(ctx,p);if e!=nil{return e};defer tunnel.Close()
+ if input.GamingMode{tunnel.EnableGamingMode()}
  started:=time.Now();probe,stop:=context.WithTimeout(ctx,8*time.Second);e=tunnel.Probe(probe);stop();if e!=nil{return e}
  if input.ProbeOnly {return json.NewEncoder(os.Stdout).Encode(map[string]any{"event":"probe_ok","latency_ms":time.Since(started).Milliseconds()})}
  if input.RelayDelayOnly {

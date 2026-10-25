@@ -47,24 +47,28 @@ func(t *Tunnel) associate(ctx context.Context,c net.Conn,reply func(byte,int)err
  var peer *net.UDPAddr;buf:=make([]byte,8500)
  // Replies are multiplexed into this one association goroutine; no unbounded
  // per-packet goroutines and no cross-client datagram delivery.
- responses:=make(chan wire.Message,256)
- type datagram struct{b []byte;src *net.UDPAddr;err error}
- packets:=make(chan datagram,256)
- go func(){for{n,src,err:=udp.ReadFromUDP(buf);p:=datagram{append([]byte(nil),buf[:n]...),src,err};select{case packets<-p:case <-assoc.Done():return};if err!=nil{return}}}()
+ limit:=t.udpQueueLimit;if limit==0{limit=256}
+ type response struct{message wire.Message;at time.Time}
+ responses:=make(chan response,limit)
+ type datagram struct{b []byte;src *net.UDPAddr;err error;at time.Time}
+ packets:=make(chan datagram,limit)
+ go func(){for{n,src,err:=udp.ReadFromUDP(buf);p:=datagram{append([]byte(nil),buf[:n]...),src,err,time.Now()};if t.udpQueueAge>0{offerLatest(packets,p)}else{select{case packets<-p:case <-assoc.Done():return}};if err!=nil{return};select{case <-assoc.Done():return;default:}}}()
  tick:=time.NewTicker(5*time.Second);defer tick.Stop()
  for{var packet datagram
  select{case <-assoc.Done():return;case <-t.done:return
  case <-tick.C:now:=time.Now();for k,f:=range flows{if now.Sub(f.last)>time.Minute{close(f.done);t.unregister(f.id,k,false);delete(flows,k)}};continue
- case m:=<-responses:
+ case response:=<-responses:
+ if expiredUDP(response.at,t.udpQueueAge){continue};m:=response.message
  if peer==nil || m.TCP || m.Kind!=0 || len(m.Payload)>8192{continue};f:=flows[m.Target];if f==nil || f.id!=m.Connection{continue};header,e:=udpHeader(m.Target);if e!=nil{continue};if _,e=udp.WriteToUDP(append(header,m.Payload...),peer);e==nil{t.Download.Add(uint64(len(m.Payload)));f.last=time.Now()};continue
  case packet=<-packets:}
+ if expiredUDP(packet.at,t.udpQueueAge){continue}
  n,src,err:=len(packet.b),packet.src,packet.err;data:=packet.b
  if err==nil{
  if !src.IP.IsLoopback() || peer!=nil && src.String()!=peer.String(){continue};if n<4 || data[0]!=0 || data[1]!=0 || data[2]!=0{continue}
  cursor:=&sliceReader{b:data[4:n]};target,e:=readAddress(cursor,data[3]);if e!=nil || len(cursor.b)>8192{continue};if peer==nil{peer=src}
  now:=time.Now()
  f:=flows[target];if f==nil{if len(flows)>=128{continue};id,ch,e:=t.register();if e!=nil{continue};f=&flow{id:id,in:ch,last:now,done:make(chan struct{})};flows[target]=f
- go func(ch chan wire.Message,done chan struct{}){for{select{case <-assoc.Done():return;case <-done:return;case <-t.done:return;case m:=<-ch:select{case responses<-m:case <-assoc.Done():return;case <-done:return}}}}(ch,f.done)
+ go func(ch chan wire.Message,done chan struct{}){for{select{case <-assoc.Done():return;case <-done:return;case <-t.done:return;case m:=<-ch:r:=response{m,time.Now()};if t.udpQueueAge>0{offerLatest(responses,r)}else{select{case responses<-r:case <-assoc.Done():return;case <-done:return}}}}}(ch,f.done)
  };f.last=now
  if t.send(wire.Message{Connection:f.id,Target:target,Payload:append([]byte(nil),cursor.b...)})==nil{t.Upload.Add(uint64(len(cursor.b)))}
  } else if !isTimeout(err){return}

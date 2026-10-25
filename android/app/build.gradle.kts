@@ -6,8 +6,8 @@ android {
         applicationId = "dev.namedkenzo.namedp"
         minSdk = 26
         targetSdk = 35
-        versionCode = 6
-        versionName = "0.2.1-alpha"
+        versionCode = 7
+        versionName = "0.2.2-alpha"
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
         ndk { abiFilters += listOf("arm64-v8a", "x86_64") }
     }

@@ -1,7 +1,7 @@
 name: namedP Android
 on:
   push:
-    branches: [main, ipv6-settings, android-relay-delay]
+    branches: [main, ipv6-settings, android-relay-delay, gaming-latency]
     paths:
       - 'android/**'
       - 'cmd/namedp-android-engine/**'
@@ -27,7 +27,7 @@ jobs:
       - uses: actions/setup-go@v7
         with:
           go-version: '1.27.3'
-      - run: go test -race -v ./internal/androidrelay
+      - run: go test -race -v ./internal/androidrelay ./internal/client
       - run: go vet ./internal/androidrelay
       - run: node scripts/test_android_version.cjs
       - uses: actions/checkout@v7

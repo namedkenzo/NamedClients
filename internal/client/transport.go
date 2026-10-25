@@ -20,6 +20,8 @@ type packetConn interface {
  Close()error
 }
 type Tunnel struct {
+	udpQueueLimit int
+	udpQueueAge time.Duration
 	family int
  conn packetConn
  peer *net.IPAddr
