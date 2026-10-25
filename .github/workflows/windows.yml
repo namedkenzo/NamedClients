@@ -1,7 +1,7 @@
 name: namedP Windows client
 on:
   push:
-    branches: [main, ipv6-settings]
+    branches: [main, ipv6-settings, windows-refresh]
   pull_request:
   workflow_dispatch:
 permissions:
@@ -75,6 +75,7 @@ jobs:
           [System.Management.Automation.Language.Parser]::ParseFile("$pwd/windows/namedP/vpn.ps1", [ref]$null, [ref]$errors) | Out-Null
           if ($errors.Count) { throw ($errors | Out-String) }
           & ./scripts/test_windows_ipv6.ps1
+          & ./scripts/test_windows_firewall.ps1
           dotnet run --project windows/namedP.Smoke -c Release
           if ($LASTEXITCODE -ne 0) { throw 'UI smoke failed' }
       - name: Package Windows client
