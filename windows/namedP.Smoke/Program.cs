@@ -42,7 +42,12 @@ static class Program
    theme.SelectedIndex = pair.Item1;
    window.Measure(new Size(540,870)); window.Arrange(new Rect(0,0,540,870)); window.UpdateLayout();
    theme.IsDropDownOpen=true;window.UpdateLayout();theme.IsDropDownOpen=false;
-   var image = new RenderTargetBitmap(540,870,96,96,PixelFormats.Pbgra32); image.Render(window);
+   var content=(FrameworkElement)window.Content;
+   foreach(string name in new[]{"ConnectButton","TestButton"}){
+    var control=(FrameworkElement)window.FindName(name);var bounds=control.TransformToAncestor(content).TransformBounds(new Rect(new Point(),control.RenderSize));
+    if(bounds.Top<0||bounds.Bottom>content.ActualHeight+1)throw new Exception(name+" is clipped below the viewport");
+   }
+   var image = new RenderTargetBitmap((int)Math.Ceiling(content.ActualWidth),(int)Math.Ceiling(content.ActualHeight),96,96,PixelFormats.Pbgra32); image.Render(content);
    var png = new PngBitmapEncoder(); png.Frames.Add(BitmapFrame.Create(image));
    using var file = File.Create("windows/namedP.Smoke/preview-"+pair.Item2+".png"); png.Save(file);
   }
