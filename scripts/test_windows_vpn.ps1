@@ -1,6 +1,9 @@
 # Run real Wintun + IP/DNS setup and real disabled firewall validation; only
 # global route mutations are mocked to preserve the CI runner's connectivity.
 $ErrorActionPreference='Stop'
+# Windows PowerShell module autoload can replace same-name test functions.
+# Import first, then override only the host-route mutations below.
+Import-Module NetTCPIP,NetSecurity,NetAdapter -ErrorAction Stop
 $routeEvents=[System.Collections.Generic.List[string]]::new()
 function Get-NetRoute {
  [CmdletBinding()]param([string]$AddressFamily,[string]$DestinationPrefix)
@@ -21,8 +24,12 @@ function New-NetFirewallRule {
 }
 $before=@(NetSecurity\Get-NetFirewallRule -Name 'namedP-*' -ErrorAction SilentlyContinue | Select-Object -ExpandProperty Name)
 [Console]::SetIn([IO.StringReader]::new(''))
+foreach($command in @('New-NetRoute','Remove-NetRoute','New-NetFirewallRule')){
+ if((Get-Command $command).ModuleName){throw "Fixture override was replaced: $command"}
+}
 & "$PSScriptRoot/../dist/namedP/vpn.ps1" -ParentPid $PID -EnginePid $PID -ServerIP '192.0.2.25' -Port 1080
 if($LASTEXITCODE){throw 'VPN guardian failed'}
+Write-Output ('Fixture route events: '+($routeEvents -join ', '))
 foreach($prefix in @('192.0.2.25/32','0.0.0.0/1','128.0.0.0/1')){
  if(!$routeEvents.Contains('add '+$prefix) -or !$routeEvents.Contains('remove '+$prefix)){throw "Missing setup/cleanup for $prefix"}
 }
