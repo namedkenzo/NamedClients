@@ -127,7 +127,7 @@ class MainActivity:Activity() {
         }
         val tabs=row().apply {background=rounded(surface,24);setPadding(dp(5),dp(5),dp(5),dp(5))}
         for((id,en,local)in listOf(Triple("home","Home","خانه"),Triple("profiles","Connections","اتصال‌ها"),Triple("settings","Settings","تنظیمات"))){
-            tabs.addView(button(tr(en,local)){page=id;render()}.apply {layoutParams=LinearLayout.LayoutParams(0,dp(44),1f);textSize=12f;background=rounded(if(page==id)soft else surface,18);setTextColor(if(page==id)accent else muted)})
+            tabs.addView(button(tr(en,local)){page=id;render()}.apply {tag="tab-"+id;layoutParams=LinearLayout.LayoutParams(0,dp(44),1f);textSize=12f;background=rounded(if(page==id)soft else surface,18);setTextColor(if(page==id)accent else muted)})
         };root.addView(tabs)
     }
     private fun home(parent:LinearLayout){

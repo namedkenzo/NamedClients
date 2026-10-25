@@ -25,6 +25,16 @@ Alternatively tap **+** and enter the server IP/domain, optional name, numeric k
 
 ## Transport
 
+## Gaming (0.2.2-alpha)
+
+Settings → Gaming is opt-in; disconnect, enable it and reconnect. It bounds
+association UDP queues to 32 packets and drops datagrams queued for over 150 ms.
+This trades stale data for possible packet loss under load, not a promised ping.
+Update the panel to 0.4.2 for separate UDP/TCP output scheduling. Choose Direct or
+UDP-capable SOCKS, pause downloads and optionally route only the game per app.
+The HTTPS relay test is not the game's own ping. Test with your game/network.
+Windows releases are unchanged.
+
 The independent Android Go executable reuses the compatible namedP codec/reliability/SOCKS implementation. Android's ping datagram socket avoids a root/raw-socket requirement when allowed by the vendor and kernel. The kernel-assigned ICMP ID is respected.
 
 VPN mode uses VpnService and excludes namedP's own UID to avoid recursive routing. TUN descriptors pass over a randomly named Unix socket after same-UID verification. Native tun2socks v2.6.0 handles TCP/UDP. The IPv6 route is captured by the VPN; IPv6 forwarding is not guaranteed. DNS uses 1.1.1.1 / 1.0.0.1 through the VPN. Proxy mode exposes loopback SOCKS5 only.

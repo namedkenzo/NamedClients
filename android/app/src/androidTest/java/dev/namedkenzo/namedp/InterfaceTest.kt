@@ -173,6 +173,25 @@ class InterfaceTest {
   context.getSharedPreferences("namedP-private",0).edit().clear().commit()
   context.getSharedPreferences("namedp-ui",0).edit().clear().commit()
  }
+ @Test fun gamingPolicyIsOptInPersistentAndLockedWhileConnected() {
+  val context=InstrumentationRegistry.getInstrumentation().targetContext
+  val prefs=context.getSharedPreferences("namedp-ui",0);prefs.edit().clear().commit();TunnelStatus.snapshot=TunnelSnapshot()
+  ActivityScenario.launch<MainActivity>(Intent(context,MainActivity::class.java)).use{scenario->
+   scenario.onActivity{activity->
+    activity.window.decorView.findViewWithTag<View>("tab-settings").performClick()
+    val toggle=activity.window.decorView.findViewWithTag<android.widget.Switch>("gaming-mode")
+    assertFalse(toggle.isChecked);toggle.performClick();assertTrue(prefs.getBoolean("gaming",false))
+   }
+   scenario.recreate()
+   scenario.onActivity{activity->
+    TunnelStatus.snapshot=TunnelSnapshot("connected","Test fixture")
+    activity.window.decorView.findViewWithTag<View>("tab-settings").performClick()
+    val toggle=activity.window.decorView.findViewWithTag<android.widget.Switch>("gaming-mode")
+    assertTrue(toggle.isChecked);assertFalse(toggle.isEnabled)
+   }
+  }
+  TunnelStatus.snapshot=TunnelSnapshot();prefs.edit().clear().commit()
+ }
  @Test fun nativeRelayCanReadAndroidSystemTLSRoots() {
   val context=InstrumentationRegistry.getInstrumentation().targetContext
   val process=ProcessBuilder(File(context.applicationInfo.nativeLibraryDir,"libnamedp.so").absolutePath,"--self-test-relay-roots").redirectErrorStream(true).start()
