@@ -1,7 +1,7 @@
 name: namedP Android
 on:
   push:
-    branches: [main, ipv6-settings]
+    branches: [main, ipv6-settings, android-relay-delay]
     paths:
       - 'android/**'
       - 'cmd/namedp-android-engine/**'
@@ -9,6 +9,7 @@ on:
       - 'go.mod'
       - 'go.sum'
       - 'scripts/build_android_native.sh'
+      - 'scripts/check_android_relay.cjs'
       - '.github/workflows/android.yml'
   pull_request:
     paths: ['android/**', 'cmd/namedp-android-engine/**', 'internal/**', '.github/workflows/android.yml']
@@ -19,6 +20,22 @@ concurrency:
   group: namedp-android-${{ github.ref }}
   cancel-in-progress: true
 jobs:
+  relay:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-go@v7
+        with:
+          go-version: '1.27.3'
+      - run: go test -race -v ./internal/androidrelay
+      - run: go vet ./internal/androidrelay
+      - run: node scripts/test_android_version.cjs
+      - uses: actions/checkout@v7
+        with:
+          repository: namedkenzo/NamedICMP
+          ref: a88c0e5de0a00611eb09fdf7d07a94c02b449154
+          path: .compat-android-relay
+      - run: node scripts/check_android_relay.cjs
   android:
     runs-on: ubuntu-latest
     timeout-minutes: 30
@@ -101,7 +118,7 @@ jobs:
             android/app/build/reports/androidTests/
   release:
     if: github.event_name == 'push' && github.ref == 'refs/heads/main' && contains(github.event.head_commit.message, '[release-android]')
-    needs: android
+    needs: [android, relay]
     runs-on: ubuntu-latest
     permissions:
       contents: write

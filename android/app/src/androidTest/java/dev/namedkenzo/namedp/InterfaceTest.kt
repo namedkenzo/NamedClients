@@ -173,6 +173,34 @@ class InterfaceTest {
   context.getSharedPreferences("namedP-private",0).edit().clear().commit()
   context.getSharedPreferences("namedp-ui",0).edit().clear().commit()
  }
+ @Test fun relayDelayIsVisibleAndCanBeTestedWithoutStoppingConnectedProfile() {
+  val context=InstrumentationRegistry.getInstrumentation().targetContext
+  context.getSharedPreferences("namedP-private",0).edit().clear().commit()
+  context.getSharedPreferences("namedp-ui",0).edit().putString("language","en").commit()
+  TunnelStatus.snapshot=TunnelSnapshot()
+  ActivityScenario.launch<MainActivity>(Intent(context,MainActivity::class.java)).use{scenario->
+   scenario.onActivity{activity->
+    activity.getSystemService(ClipboardManager::class.java).setPrimaryClip(ClipData.newPlainText("Test","pingtunnel://example.com?key=123456"))
+    activity.window.decorView.findViewWithTag<View>("paste-profile").performClick()
+    assertTrue(activity.window.decorView.findViewWithTag<TextView>("home-relay-delay").text.toString().contains("not tested"))
+    assertTrue(activity.window.decorView.findViewWithTag<View>("home-test-delay").isEnabled)
+    TunnelStatus.snapshot=TunnelSnapshot("connected","Test-only fixture")
+    activity.window.decorView.findViewWithTag<View>("profile-card").performClick()
+   }
+   InstrumentationRegistry.getInstrumentation().waitForIdleSync()
+   scenario.onActivity{activity->
+    val view=activity.window.decorView
+    assertTrue("Relay test must not require disconnect",view.findViewWithTag<View>("test-profile").isEnabled)
+    assertFalse(view.findViewWithTag<View>("manual-save").isEnabled)
+    assertTrue(view.findViewWithTag<TextView>("diagnostic-status").text.toString().contains("TCP + TLS + HTTP"))
+    assertEquals("connected",TunnelStatus.snapshot.state)
+    activity.getSystemService(ClipboardManager::class.java).clearPrimaryClip()
+   }
+  }
+  TunnelStatus.snapshot=TunnelSnapshot()
+  context.getSharedPreferences("namedP-private",0).edit().clear().commit()
+  context.getSharedPreferences("namedp-ui",0).edit().clear().commit()
+ }
  @Test fun rendersThemesAndConnectionStates() {
   val context=InstrumentationRegistry.getInstrumentation().targetContext
   ActivityScenario.launch<MainActivity>(Intent(context,MainActivity::class.java)).use { scenario ->

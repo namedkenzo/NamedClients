@@ -1,6 +1,6 @@
 # namedP for Android
 
-**0.2.0-alpha development** implementation. Android 8+ (API 26), arm64 phones and x86_64 emulators. The APK is debug-signed for testing, not a production/Play Store release.
+**0.2.1-alpha development** implementation. Android 8+ (API 26), arm64 phones and x86_64 emulators. The APK is debug-signed for testing, not a production/Play Store release.
 
 ## Experience
 
@@ -17,9 +17,9 @@ A fresh connection-first layout inspired by the clear navigation of [Psiphon](ht
 1. Copy the complete `pingtunnel://` Config link from your panel.
 2. Tap **Paste** on Home or Connections. It imports the complete clipboard text directly, without an editor. The server is used as the default name.
 3. Tap **Connect**. Importing does not connect automatically. The URI's `mode` selects routing; there is no separate home mode toggle.
-4. Tap the configuration to edit Details, save/copy it or run an authenticated ICMP Test. Changing Details updates the same saved profile.
+4. Tap the configuration to edit Details, save/copy it or run a relayed HTTPS delay test. Changing Details updates the same saved profile.
 
-VPN routes the device; Proxy exposes local SOCKS only. Proxy per app uses an Android application allowlist selected in Details. At least one app other than namedP is required; visible launcher apps are offered. The Test button checks handshake/latency, not speed or leaks.
+VPN routes the device; Proxy exposes local SOCKS only. Proxy per app uses an Android application allowlist selected in Details. At least one app other than namedP is required; visible launcher apps are offered. The Test delay button sends a fresh HTTPS GET to `https://www.gstatic.com/generate_204` through the profile's authenticated ICMP stream and selected outbound. It requires verified TLS and HTTP 204; redirects and other statuses fail. The timer includes TCP setup, TLS and response headers, but excludes the preceding ICMP authentication. It is not raw ICMP ping, download speed or a leak test. Results appear on Home, Connections and Details, remain in memory only, and are invalidated when a profile changes. Tests work disconnected or while connected, without starting/stopping the device VPN or binding its SOCKS port. A test uses a small amount of the profile's quota and contacts Google; only a manual tap sends it, with no automatic background polling.
 
 Alternatively tap **+** and enter the server IP/domain, optional name, numeric key **or** encryption method and Base64 key, local SOCKS port and connection mode. A missing key is not guessed or bypassed; copy the full link or obtain the key from your panel. Compatible encryption aliases are normalized before being sent to the engine. Secrets are not displayed in errors.
 
@@ -45,11 +45,13 @@ CI additionally runs emulator interface checks and captures both themes. Connect
 
 ## Signing and publication
 
-Both client sources may now be public at the owner's request. Android has its own `android-v0.2.0-alpha` development release; Windows stays unchanged. CI caches the development debug key for test builds; production distribution requires owner-controlled signing secrets. Never put signing keys or actual profiles in Git.
+Both client sources may now be public at the owner's request. Android has its own `android-v0.2.1-alpha` development release; Windows stays unchanged. CI caches the development debug key for test builds; production distribution requires owner-controlled signing secrets. Never put signing keys or actual profiles in Git.
 
 ## فارسی
 
 رابط جدید اندروید از ساختار سادهٔ اتصال و تنظیمات سایفون و مدیریت پروفایل PingTunnel Client الهام گرفته و با طراحی و داچهوند اختصاصی namedP ساخته شده است. برنامه حالت VPN دستگاه یا SOCKS5 محلی، تم خودکار/روشن/تیره و متن‌های فارسی/انگلیسی دارد. این نسخهٔ آلفا و امضاشده با کلید توسعه است و باید روی گوشی و سرور واقعی تست شود.
+
+برای تست، دکمهٔ «تست تأخیر» را در خانه یا جزئیات کانفیگ بزنید. درخواست HTTPS به generate_204 گوگل از داخل همان تونل و خروجی عبور می‌کند؛ فقط پاسخ معتبر ۲۰۴، زمان میلی‌ثانیه‌ای نشان می‌دهد. این عدد پینگ خام ICMP یا سرعت دانلود نیست و تست مقدار کمی از حجم کانفیگ را مصرف می‌کند. هنگام اتصال نیز بدون قطع VPN قابل اجراست.
 
 برای افزودن اتصال، لینک کامل Config پنل را کپی کنید و Paste، سپس اتصال را بزنید. دکمهٔ + برای ورود دستی سرور و رمز است؛ نام اختیاری است. لینک ناقص با پیام مشخص رد می‌شود و هیچ اتصال ساختگی نمایش داده نمی‌شود.
 

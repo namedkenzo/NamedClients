@@ -37,7 +37,10 @@ class MainActivity:Activity() {
     private var diagnostic=""
     private var testing=false
     @Volatile private var testProcess:java.lang.Process?=null
-    private var testGeneration=0
+    @Volatile private var testGeneration=0
+    private var testingProfileId:String?=null
+    private val testLock=Any()
+    private val relayResults=mutableMapOf<String,Pair<String,RelayDelayResult>>()
     private lateinit var root:LinearLayout
     private var traffic:TextView?=null
     private var elapsed:TextView?=null
@@ -62,7 +65,7 @@ class MainActivity:Activity() {
     }
     override fun onResume(){super.onResume();handler.post(tick)}
     override fun onPause(){handler.removeCallbacks(tick);super.onPause()}
-    override fun onDestroy(){testGeneration++;testProcess?.destroy();super.onDestroy()}
+    override fun onDestroy(){cancelRelayTest();super.onDestroy()}
     private fun text(value:String,size:Float=14f,color:Int=ink,bold:Boolean=false):TextView=TextView(this).apply {
         this.text=value;textSize=size;setTextColor(color);includeFontPadding=false
         if(bold)typeface=Typeface.create("sans-serif-medium",Typeface.NORMAL)
@@ -112,9 +115,9 @@ class MainActivity:Activity() {
         when(page){"details"->detailsPage(content);"profiles"->profilesPage(content);"settings"->settingsPage(content);else->home(content)}
         if(page=="details"){
             root.addView(row().apply{
-                addView(button(tr("Test","تست")){testDetail()}.apply{tag="test-profile";layoutParams=LinearLayout.LayoutParams(0,dp(52),1f);isEnabled=!testing && !active()})
+                addView(button(if(testing)tr("Testing…","در حال تست…")else tr("Test delay","تست تأخیر")){testDetail()}.apply{tag="test-profile";layoutParams=LinearLayout.LayoutParams(0,dp(52),1f);isEnabled=!testing && snapshot().state!="connecting" && preview==null})
                 addView(button(if(active())tr("Disconnect","قطع اتصال")else tr("Connect","اتصال"),true){if(active())toggle()else if(commitDetail()!=null)toggle()}.apply{tag="connect";layoutParams=LinearLayout.LayoutParams(0,dp(52),2f).apply{marginStart=dp(8)}})
-            });return
+            });updateDetailStatus();return
         }
         val tabs=row().apply {background=rounded(surface,24);setPadding(dp(5),dp(5),dp(5),dp(5))}
         for((id,en,local)in listOf(Triple("home","Home","خانه"),Triple("profiles","Connections","اتصال‌ها"),Triple("settings","Settings","تنظیمات"))){
@@ -145,6 +148,11 @@ class MainActivity:Activity() {
         gap(parent,13)
         val stats=row();traffic=text("↑ ${bytes(state.upload)}     ↓ ${bytes(state.download)}",12f,muted).apply {layoutParams=LinearLayout.LayoutParams(0,-2,1f)}
         elapsed=text("00:00",12f,muted).apply{layoutParams=LinearLayout.LayoutParams(-2,-2)};stats.addView(traffic);stats.addView(elapsed);parent.addView(stats)
+        gap(parent,10)
+        parent.addView(row().apply{
+            addView(text(relayCaption(profile),12f,muted).apply{tag="home-relay-delay";layoutParams=LinearLayout.LayoutParams(0,-2,1f);accessibilityLiveRegion=View.ACCESSIBILITY_LIVE_REGION_POLITE})
+            addView(button(if(testing)tr("Testing…","در حال تست…")else tr("Test delay","تست تأخیر")){selected()?.let{startRelayTest(it)}}.apply{tag="home-test-delay";layoutParams=LinearLayout.LayoutParams(dp(112),dp(40));textSize=12f;isEnabled=profile!=null && !testing && state.state!="connecting" && preview==null})
+        })
         gap(parent,14);parent.addView(text(if(profile?.mode!="proxy")tr("Mode follows this configuration. TCP + UDP through Android VPN.","حالت اتصال از همین کانفیگ خوانده می‌شود؛ TCP و UDP از VPN اندروید.")else tr("Configure apps to use SOCKS5 on 127.0.0.1:${profile.port}.","برنامه‌ها را روی SOCKS5 به آدرس 127.0.0.1:${profile.port} تنظیم کنید."),11f,muted).apply{gravity=Gravity.CENTER})
     }
     private fun profilesPage(parent:LinearLayout){
@@ -153,7 +161,7 @@ class MainActivity:Activity() {
         importButtons(parent);gap(parent,16)
         profiles.forEach { profile ->
             parent.addView(card().apply{
-                addView(text((if(selected()?.id==profile.id)"●  " else "○  ")+profile.name,16f,ink,true));gap(this,5);addView(text(profile.host+" · "+modeLabel(profile.mode),12f,muted));gap(this,5);addView(text(tr("Tap for details · hold to remove","جزئیات با لمس؛ حذف با نگه‌داشتن"),10f,muted))
+                addView(text((if(selected()?.id==profile.id)"●  " else "○  ")+profile.name,16f,ink,true));gap(this,5);addView(text(profile.host+" · "+modeLabel(profile.mode),12f,muted));gap(this,5);addView(text(relayCaption(profile),11f,muted));gap(this,5);addView(text(tr("Tap for details · hold to remove","جزئیات با لمس؛ حذف با نگه‌داشتن"),10f,muted))
                 setOnClickListener{openDetails(profile)}
                 setOnLongClickListener{if(active())notice(tr("Disconnect before removing a profile","پیش از حذف پروفایل اتصال را قطع کنید"))else dialog().setTitle(tr("Remove connection?","اتصال حذف شود؟")).setMessage(profile.name).setNegativeButton(tr("Cancel","انصراف"),null).setPositiveButton(tr("Remove","حذف")){_,_->try{profiles.remove(profile);store.save(profiles);render()}catch(e:Exception){notice(e.message?:"Could not save")}}.show();true}
             });gap(parent,12)
@@ -208,8 +216,9 @@ class MainActivity:Activity() {
     private fun openDetails(profile:Profile?){
         if(locked)return
         if(active() && profile?.id!=selected()?.id){notice(tr("Disconnect before changing profiles","پیش از تغییر پروفایل اتصال را قطع کنید"));return}
+        if(testing && profile?.id!=testingProfileId)cancelRelayTest()
         if(profile!=null)prefs.edit().putString("selected",profile.id).apply()
-        detailId=profile?.id;diagnostic="";page="details";render()
+        detailId=profile?.id;diagnostic=if(testing)tr("Testing HTTPS through this profile…","در حال تست HTTPS از داخل این کانفیگ…")else relayResult(profile)?.let{relayDescription(it)}.orEmpty();page="details";render()
     }
     private fun editProfile(){openDetails(null)}
     private fun detailsPage(parent:LinearLayout){
@@ -291,7 +300,8 @@ class MainActivity:Activity() {
         gap(parent,12)
         parent.addView(card().apply{
             addView(text(tr("Diagnostics","عیب‌یابی"),17f,ink,true));gap(this,8)
-            diagnosticText=text(diagnostic.ifBlank{tr("Not tested. Test checks the authenticated ICMP handshake, not internet speed.","آزمایش نشده؛ تست، احراز هویت ICMP را بررسی می‌کند، نه سرعت اینترنت.")},12f,muted).apply{tag="diagnostic-status"};addView(diagnosticText)
+            diagnosticText=text(diagnostic.ifBlank{tr("Not tested. Relay delay measures TCP + TLS + HTTP through this profile; it is not download speed or raw ICMP ping.","آزمایش نشده؛ تأخیر از مسیر TCP و TLS و HTTP همین کانفیگ اندازه‌گیری می‌شود؛ سرعت دانلود یا پینگ خام ICMP نیست.")},12f,muted).apply{tag="diagnostic-status";accessibilityLiveRegion=View.ACCESSIBILITY_LIVE_REGION_POLITE};addView(diagnosticText)
+            gap(this,8);addView(text(RelayDelayResult.URL,10f,muted).apply{textDirection=View.TEXT_DIRECTION_LTR})
         })
         updateDetailStatus()
     }
@@ -303,6 +313,7 @@ class MainActivity:Activity() {
         val state=snapshot()
         detailStatus?.text=when(state.state){"connected"->tr("Connected","متصل");"connecting"->tr("Connecting…","در حال اتصال…");"error"->state.message;else->tr("Disconnected · not connected","قطع · اتصال برقرار نیست")}
         detailForm?.let{setInputsEnabled(it,!active() && !testing)}
+        root.findViewWithTag<Button>("test-profile")?.apply{isEnabled=!testing && state.state!="connecting" && preview==null;text=if(testing)tr("Testing…","در حال تست…")else tr("Test delay","تست تأخیر")}
     }
     private fun commitDetail():Profile?{
         if(active())return profiles.find{it.id==detailId}
@@ -319,30 +330,45 @@ class MainActivity:Activity() {
         getSystemService(ClipboardManager::class.java).setPrimaryClip(clip)
         Toast.makeText(this,tr("Configuration copied","کانفیگ کپی شد"),Toast.LENGTH_SHORT).show()
     }
+    private fun relayResult(profile:Profile?)=profile?.let{relayResults[it.id]?.takeIf{entry->entry.first==it.link}?.second}
+    private fun relayCaption(profile:Profile?):String {
+        if(testing && profile?.id==testingProfileId)return tr("Delay: testing…","تأخیر: در حال تست…")
+        val result=relayResult(profile)
+        return when{result?.milliseconds!=null->tr("Delay: ","تأخیر: ")+result.milliseconds+" ms";result?.failure!=null->tr("Delay: failed","تأخیر: ناموفق");else->tr("Delay: not tested","تأخیر: تست نشده")}
+    }
+    private fun relayDescription(result:RelayDelayResult)=result.milliseconds?.let{tr("Relay delay · ","تأخیر مسیر · ")+it+" ms · HTTPS 204"} ?: result.failure.orEmpty()
+    private fun cancelRelayTest(){synchronized(testLock){testGeneration++;testProcess?.destroyForcibly();testProcess=null};testing=false;testingProfileId=null}
     private fun testDetail(){
-        if(testing||active())return
+        if(testing || snapshot().state=="connecting" || preview!=null)return
         val profile=commitDetail() ?: return
-        testing=true;diagnostic=tr("Testing authenticated ICMP…","در حال تست احراز هویت ICMP…");diagnosticText?.text=diagnostic;updateDetailStatus()
+        startRelayTest(profile)
+    }
+    private fun startRelayTest(profile:Profile){
+        if(testing || snapshot().state=="connecting" || preview!=null || locked)return
+        testing=true;testingProfileId=profile.id;diagnostic=tr("Testing HTTPS through this profile…","در حال تست HTTPS از داخل این کانفیگ…")
+        if(page=="details"){diagnosticText?.text=diagnostic;updateDetailStatus()}else render()
         val generation=++testGeneration
         Thread{
             var process:java.lang.Process?=null
             val result=try{
                 process=ProcessBuilder(java.io.File(applicationInfo.nativeLibraryDir,"libnamedp.so").absolutePath).directory(filesDir).start()
-                testProcess=process
-                val input=org.json.JSONObject().put("link",profile.engineLink()).put("mode",if(profile.mode=="proxy")"proxy"else"vpn").put("probe_only",true)
+                synchronized(testLock){check(generation==testGeneration){"Test cancelled"};testProcess=process}
+                val input=org.json.JSONObject().put("link",profile.engineLink()).put("mode",if(profile.mode=="proxy")"proxy"else"vpn").put("relay_delay_only",true)
                 process.outputStream.write((input.toString()+"\n").toByteArray(Charsets.UTF_8));process.outputStream.flush()
-                if(!process.waitFor(12,java.util.concurrent.TimeUnit.SECONDS)){process.destroyForcibly();error(tr("Test timed out","مهلت تست تمام شد"))}
-                if(process.exitValue()!=0)error(process.errorStream.bufferedReader().readText().trim().take(180).ifBlank{tr("ICMP test failed","تست ICMP ناموفق بود")})
+                if(!process.waitFor(30,java.util.concurrent.TimeUnit.SECONDS)){process.destroyForcibly();error(tr("Relay test timed out","مهلت تست تأخیر تمام شد"))}
+                if(process.exitValue()!=0)error(process.errorStream.bufferedReader().readText().trim().take(180).ifBlank{tr("Relay test failed","تست تأخیر ناموفق بود")})
                 val event=org.json.JSONObject(process.inputStream.bufferedReader().readText())
-                check(event.optString("event")=="probe_ok")
-                tr("Authenticated ICMP reply · ","پاسخ معتبر ICMP · ")+event.optLong("latency_ms")+" ms"
-            }catch(e:Exception){e.message ?: tr("Test failed","تست ناموفق بود")}
-            finally{try{process?.outputStream?.close()}catch(_:Exception){};process?.destroy();testProcess=null}
-            handler.post{if(generation==testGeneration && !isFinishing && !isDestroyed){testing=false;diagnostic=result;diagnosticText?.text=result;updateDetailStatus()}}
+                RelayDelayResult.verified(event.optString("event"),event.optString("url"),event.optInt("status"),event.optLong("latency_ms",-1))
+            }catch(e:Exception){RelayDelayResult(null,tr("Relay test failed","تست تأخیر ناموفق بود")+": "+(e.message ?: tr("Unknown error","خطای نامشخص")))}
+            finally{try{process?.outputStream?.close()}catch(_:Exception){};process?.destroyForcibly();synchronized(testLock){if(testProcess===process)testProcess=null}}
+            handler.post{if(generation==testGeneration && !isFinishing && !isDestroyed){
+                testing=false;testingProfileId=null;relayResults[profile.id]=profile.link to result
+                if(page=="details" && detailId==profile.id){diagnostic=relayDescription(result);diagnosticText?.text=diagnostic;updateDetailStatus()}else if(page!="details")render()
+            }}
         }.start()
     }
     private fun toggle(){
-        if(active()){startService(Intent(this,TunnelService::class.java).setAction("stop"));return}
+        if(active()){cancelRelayTest();startService(Intent(this,TunnelService::class.java).setAction("stop"));return}
         if(selected()==null){notice(tr("Tap Paste to import your copied Config link, or + to enter it manually.","با Paste لینک Config کپی‌شده را وارد کنید یا با + دستی اضافه کنید."));return}
         if(Build.VERSION.SDK_INT>=33 && checkSelfPermission(Manifest.permission.POST_NOTIFICATIONS)!=android.content.pm.PackageManager.PERMISSION_GRANTED)requestPermissions(arrayOf(Manifest.permission.POST_NOTIFICATIONS),42)
         val profile=selected()?:return

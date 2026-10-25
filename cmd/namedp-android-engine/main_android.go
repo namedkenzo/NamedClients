@@ -15,11 +15,12 @@ import (
 
  "golang.org/x/sys/unix"
  "namedp/internal/client"
+ "namedp/internal/androidrelay"
 )
 
-type config struct { Link string `json:"link"`; Mode string `json:"mode"`; TunSocket string `json:"tun_socket"`; TunBinary string `json:"tun_binary"`; ProbeOnly bool `json:"probe_only"` }
+type config struct { Link string `json:"link"`; Mode string `json:"mode"`; TunSocket string `json:"tun_socket"`; TunBinary string `json:"tun_binary"`; ProbeOnly bool `json:"probe_only"`; RelayDelayOnly bool `json:"relay_delay_only"` }
 func main(){
- if len(os.Args)==2 && os.Args[1]=="--version"{fmt.Println("0.2.0-alpha");return}
+ if len(os.Args)==2 && os.Args[1]=="--version"{fmt.Println("0.2.1-alpha");return}
  if len(os.Args)==2 && (os.Args[1]=="--self-test-socket"||os.Args[1]=="--self-test-socket6"){
   link:="pingtunnel://127.0.0.1?key=123";if os.Args[1]=="--self-test-socket6"{link="pingtunnel://[::1]?key=123"}
   p,e:=client.ParseProfile(link)
@@ -33,10 +34,15 @@ func run()error{
  dec:=json.NewDecoder(io.LimitReader(os.Stdin,16384));dec.DisallowUnknownFields();if e:=dec.Decode(&input);e!=nil{return errors.New("invalid engine request")}
  p,e:=client.ParseProfile(input.Link);if e!=nil{return e};if input.Mode!=p.Mode{return errors.New("engine mode must match the profile")}
  ctx,cancel:=context.WithCancel(context.Background());defer cancel()
+ if input.RelayDelayOnly { var stop context.CancelFunc;ctx,stop=context.WithTimeout(ctx,25*time.Second);defer stop() }
  go func(){io.Copy(io.Discard,os.Stdin);cancel()}()
  tunnel,e:=client.OpenAndroid(ctx,p);if e!=nil{return e};defer tunnel.Close()
  started:=time.Now();probe,stop:=context.WithTimeout(ctx,8*time.Second);e=tunnel.Probe(probe);stop();if e!=nil{return e}
  if input.ProbeOnly {return json.NewEncoder(os.Stdout).Encode(map[string]any{"event":"probe_ok","latency_ms":time.Since(started).Milliseconds()})}
+ if input.RelayDelayOnly {
+  delay,err:=androidrelay.Measure(ctx,tunnel);if err!=nil{return err}
+  return json.NewEncoder(os.Stdout).Encode(map[string]any{"event":"relay_delay","url":androidrelay.Endpoint,"status":204,"latency_ms":delay.Milliseconds()})
+ }
  var mu sync.Mutex;emit:=func(v any){mu.Lock();defer mu.Unlock();_ =json.NewEncoder(os.Stdout).Encode(v)}
  errorsCh:=make(chan error,2)
  go func(){tick:=time.NewTicker(time.Second);defer tick.Stop();for{select{case <-ctx.Done():return;case <-tick.C:emit(map[string]any{"event":"stats","upload":tunnel.Upload.Load(),"download":tunnel.Download.Load()})}}}()

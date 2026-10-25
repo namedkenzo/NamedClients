@@ -7,7 +7,7 @@
 | پلتفرم | وضعیت | محل کد |
 | --- | --- | --- |
 | ویندوز ۱۰/۱۱، x64 | namedP نسخهٔ `0.2.0-alpha` | [`windows/namedP`](windows/namedP) |
-| اندروید ۸ به بالا، arm64 | APK آزمایشی `0.2.0-alpha` | [`android`](android) · [دانلود](https://github.com/namedkenzo/NamedClients/releases/tag/android-v0.2.0-alpha) |
+| اندروید ۸ به بالا، arm64 | APK آزمایشی `0.2.1-alpha` | [`android`](android) · [دانلود](https://github.com/namedkenzo/NamedClients/releases/tag/android-v0.2.1-alpha) |
 
 ## ویندوز
 
@@ -25,13 +25,15 @@
 
 ## اندروید
 
-حالت از `mode` کانفیگ خوانده می‌شود؛ انتخاب دوتایی در خانه حذف شده است. با لمس پروفایل، جزئیات، ذخیره/کپی، تست ICMP و گزینه‌های حالت اتصال باز می‌شوند. تنظیمات شبکه و کنترل ارسال سرور در [NamedICMP 0.3.1](https://github.com/namedkenzo/NamedICMP/releases/tag/v0.3.1) هستند.
+**جدید در ۰٫۲٫۱ آلفا:** «تست تأخیر» درخواست `https://www.gstatic.com/generate_204` را از داخل کانفیگ و خروجی انتخاب‌شده می‌فرستد، نه اینترنت مستقیم گوشی. زمان TCP، TLS معتبر و پاسخ ۲۰۴ در خانه، فهرست و جزئیات دیده می‌شود؛ قبل یا هنگام اتصال قابل اجراست و تست سرعت نیست. نسخهٔ ویندوز تغییر نکرده است.
+
+حالت از `mode` کانفیگ خوانده می‌شود؛ انتخاب دوتایی در خانه حذف شده است. با لمس پروفایل، جزئیات، ذخیره/کپی، تست تأخیر HTTPS و گزینه‌های حالت اتصال باز می‌شوند. تنظیمات شبکه و کنترل ارسال سرور در [NamedICMP 0.3.1](https://github.com/namedkenzo/NamedICMP/releases/tag/v0.3.1) هستند.
 
 لینک Config پنل را کپی کنید ← **Paste** ← **اتصال**. دکمهٔ **+** برای ورود دستی سرور و رمز عددی یا رمزنگاری است؛ نام اختیاری است.
 
-نسخهٔ اولیهٔ اندروید با رابط تازه، Home/Connections/Settings، متن‌های فارسی/انگلیسی، تم خودکار سیستم و داچهوند متحرک ساخته شده است. APK امضای توسعه دارد و نسخهٔ تولیدی یا Play Store نیست. تست رابط و اجرای هسته بدون روت روی شبیه‌ساز پاس شده‌اند؛ اتصال واقعی گوشی به VPS، سرعت و نشت شبکه هنوز به آزمون نیاز دارند. [راهنمای اندروید](android/README.md) · [دانلود APK آزمایشی](https://github.com/namedkenzo/NamedClients/releases/tag/android-v0.2.0-alpha).
+نسخهٔ اولیهٔ اندروید با رابط تازه، Home/Connections/Settings، متن‌های فارسی/انگلیسی، تم خودکار سیستم و داچهوند متحرک ساخته شده است. APK امضای توسعه دارد و نسخهٔ تولیدی یا Play Store نیست. تست رابط و اجرای هسته بدون روت روی شبیه‌ساز پاس شده‌اند؛ اتصال واقعی گوشی به VPS، سرعت و نشت شبکه هنوز به آزمون نیاز دارند. [راهنمای اندروید](android/README.md) · [دانلود APK آزمایشی](https://github.com/namedkenzo/NamedClients/releases/tag/android-v0.2.1-alpha).
 
-[تصویر روشن](https://github.com/namedkenzo/NamedClients/releases/download/android-v0.2.0-alpha/light-idle.png) · [تصویر تیره](https://github.com/namedkenzo/NamedClients/releases/download/android-v0.2.0-alpha/dark-idle.png). ظاهر و امکانات ویندوز در این مرحله تغییر نکرده‌اند.
+[تصویر روشن](https://github.com/namedkenzo/NamedClients/releases/download/android-v0.2.1-alpha/light-idle.png) · [تصویر تیره](https://github.com/namedkenzo/NamedClients/releases/download/android-v0.2.1-alpha/dark-idle.png). ظاهر و امکانات ویندوز در این مرحله تغییر نکرده‌اند.
 
 ## کلاینت‌های دیگر PingTunnel
 
