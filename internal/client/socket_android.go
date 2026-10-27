@@ -7,6 +7,7 @@ import (
  "fmt"
  "net"
  "sync"
+ "time"
 
  "golang.org/x/sys/unix"
  "namedp/internal/wire"
@@ -59,7 +60,7 @@ func OpenAndroid(ctx context.Context,p Profile)(*Tunnel,error){
  sec:=wire.NewSecurity();if err=sec.SetCredentials([]wire.Credential{p.Credential});err!=nil{return fail(err)}
  // Assert crypto/rand availability early rather than failing in a live flow.
  var entropy [1]byte;if _,err=rand.Read(entropy[:]);err!=nil{return fail(err)}
- t:=&Tunnel{conn:c,peer:&net.IPAddr{IP:ips[0]},security:sec,key:p.Credential.Key,id:uint16(port),flows:map[string]chan wire.Message{},probe:make(chan wire.Message,8),done:make(chan struct{}),family:family}
+ t:=&Tunnel{conn:c,peer:&net.IPAddr{IP:ips[0]},security:sec,key:p.Credential.Key,id:uint16(port),flows:map[string]chan wire.Message{},probe:make(chan wire.Message,8),done:make(chan struct{}),family:family,activityStart:time.Now()}
  go t.read();go func(){select{case <-ctx.Done():t.Close();case <-t.done:}}()
  return t,nil
 }

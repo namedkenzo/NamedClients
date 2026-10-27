@@ -20,7 +20,7 @@ import (
 
 type config struct { Link string `json:"link"`; Mode string `json:"mode"`; TunSocket string `json:"tun_socket"`; TunBinary string `json:"tun_binary"`; ProbeOnly bool `json:"probe_only"`; RelayDelayOnly bool `json:"relay_delay_only"`;GamingMode bool `json:"gaming_mode"` }
 func main(){
- if len(os.Args)==2 && os.Args[1]=="--version"{fmt.Println("1.0.1");return}
+ if len(os.Args)==2 && os.Args[1]=="--version"{fmt.Println("1.0.2");return}
  if len(os.Args)==2 && os.Args[1]=="--self-test-relay-roots"{
   if err:=androidrelay.ValidateTLSRoots();err!=nil{fmt.Fprintln(os.Stderr,err);os.Exit(1)}
   fmt.Println("relay-roots-ready");return
@@ -51,7 +51,7 @@ func run()error{
  var mu sync.Mutex;emit:=func(v any){mu.Lock();defer mu.Unlock();_ =json.NewEncoder(os.Stdout).Encode(v)}
  errorsCh:=make(chan error,2)
  go func(){tick:=time.NewTicker(time.Second);defer tick.Stop();for{select{case <-ctx.Done():return;case <-tick.C:emit(map[string]any{"event":"stats","upload":tunnel.Upload.Load(),"download":tunnel.Download.Load()})}}}()
- go func(){tick:=time.NewTicker(5*time.Second);defer tick.Stop();for{select{case <-ctx.Done():return;case <-tick.C:probe,done:=context.WithTimeout(ctx,8*time.Second);err:=tunnel.Probe(probe);done();if err!=nil{tunnel.Close();return}}}}()
+ go func(){if err:=tunnel.WatchHealth(ctx);err!=nil&&ctx.Err()==nil{fmt.Fprintln(os.Stderr,err);tunnel.Close()}}()
  var tun *exec.Cmd
  defer func(){if tun!=nil && tun.Process!=nil{_ =tun.Process.Kill()}}()
  e=tunnel.ServeSOCKS(ctx,p.Port,func(){

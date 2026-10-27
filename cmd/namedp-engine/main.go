@@ -12,7 +12,7 @@ import (
  "namedp/internal/client"
  "namedp/internal/androidrelay"
 )
-const version = "1.0.1"
+const version = "1.0.2"
 
 func main(){if len(os.Args)==2 && os.Args[1]=="--version"{fmt.Println(version);return};if err:=run();err!=nil{fmt.Fprintln(os.Stderr,err);os.Exit(1)}}
 func run()error{
@@ -30,9 +30,7 @@ func run()error{
  if input.RelayDelayOnly{delay,err:=androidrelay.Measure(ctx,t);if err!=nil{return err};return json.NewEncoder(os.Stdout).Encode(map[string]any{"event":"relay_delay","url":androidrelay.Endpoint,"status":204,"latency_ms":delay.Milliseconds()})}
  var mu sync.Mutex;emit:=func(v any){mu.Lock();defer mu.Unlock();json.NewEncoder(os.Stdout).Encode(v)}
  go func(){tick:=time.NewTicker(time.Second);defer tick.Stop();for{select{case <-ctx.Done():return;case <-tick.C:emit(map[string]any{"event":"stats","upload":t.Upload.Load(),"download":t.Download.Load()})}}}()
- go func(){tick:=time.NewTicker(5*time.Second);defer tick.Stop();for{select{case <-ctx.Done():return;case <-t.Done():return;case <-tick.C:
-  probe,done:=context.WithTimeout(ctx,8*time.Second);err:=t.Probe(probe);done();if err!=nil{fmt.Fprintln(os.Stderr,"ICMP connection lost; reconnect after checking the server and network.");t.Close();return}
- }}}()
+ go func(){if err:=t.WatchHealth(ctx);err!=nil&&ctx.Err()==nil{fmt.Fprintln(os.Stderr,err);t.Close()}}()
  err=t.ServeSOCKS(ctx,p.Port,func(){emit(map[string]any{"event":"ready","server_ip":t.ServerIP(),"port":p.Port,"mode":p.Mode})})
  if ctx.Err()!=nil{return nil};return err
 }

@@ -34,6 +34,8 @@ type Tunnel struct {
  probe chan wire.Message
  done chan struct{}
  once sync.Once
+ activityStart time.Time
+ lastAuthenticatedReceive atomic.Int64
  Upload,Download atomic.Uint64
 }
 func randomID() string {b:=make([]byte,16);if _,e:=rand.Read(b);e!=nil{panic(e)};return hex.EncodeToString(b)}
@@ -43,7 +45,7 @@ func Open(ctx context.Context,p Profile) (*Tunnel,error) {
  conn,err:=net.ListenIP(protocol,&net.IPAddr{IP:local});if err!=nil{return nil,fmt.Errorf("raw ICMP socket: run namedP as Administrator: %w",err)}
  sec:=wire.NewSecurity();if err=sec.SetCredentials([]wire.Credential{p.Credential});err!=nil{conn.Close();return nil,err}
  b:=make([]byte,2);rand.Read(b)
- t:=&Tunnel{conn:conn,peer:&net.IPAddr{IP:ips[0]},security:sec,key:p.Credential.Key,id:binary.BigEndian.Uint16(b),flows:map[string]chan wire.Message{},probe:make(chan wire.Message,8),done:make(chan struct{}),family:family}
+ t:=&Tunnel{conn:conn,peer:&net.IPAddr{IP:ips[0]},security:sec,key:p.Credential.Key,id:binary.BigEndian.Uint16(b),flows:map[string]chan wire.Message{},probe:make(chan wire.Message,8),done:make(chan struct{}),family:family,activityStart:time.Now()}
  conn.SetReadBuffer(4<<20);conn.SetWriteBuffer(4<<20)
  go t.read();go func(){select{case <-ctx.Done():t.Close();case <-t.done:}}()
  return t,nil
@@ -62,7 +64,7 @@ func(t *Tunnel) read(){
  for {n,peer,err:=t.conn.ReadFromIP(b);if err!=nil{return};if !peer.IP.Equal(t.peer.IP){continue}
  decode,reply:=wire.DecodeEcho,byte(0);if t.family==6{decode,reply=wire.DecodeEcho6,129}
  typ,id,_,payload,err:=decode(b[:n]);if err!=nil || typ!=reply || id!=t.id{continue}
- m,_,err:=t.security.Decode(peer.String(),id,payload);if err!=nil || m.ReplyType!=-1{continue};m.Payload=append([]byte(nil),m.Payload...)
+ m,_,err:=t.security.Decode(peer.String(),id,payload);if err!=nil || m.ReplyType!=-1{continue};t.recordAuthenticatedReceive(time.Now());m.Payload=append([]byte(nil),m.Payload...)
  if m.Kind==1{select{case t.probe<-m:default:};continue}
  t.mu.Lock();ch:=t.flows[m.Connection];t.mu.Unlock();if ch!=nil{select{case ch<-m:default:}}
  }
