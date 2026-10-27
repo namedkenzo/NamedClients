@@ -5,15 +5,17 @@ A little companion. A private connection.
 [فارسی](README.fa.md) · [Download the latest release](https://github.com/namedkenzo/NamedClients/releases/latest) · [NamedICMP web panel](https://github.com/namedkenzo/NamedICMP) · [MIT license](LICENSE)
 
 Native Windows and Android clients for configurations exported by the **NamedICMP web panel**.
-Both platforms now share one **1.0.1 stable GitHub release**, independently versioned from the panel.
+Both platforms now share one **1.0.2 stable GitHub release**, independently versioned from the panel.
 
 | Download | Platform | How to run |
 | --- | --- | --- |
-| [Setup EXE](https://github.com/namedkenzo/NamedClients/releases/download/namedp-v1.0.1/namedP-1.0.1-windows-x64-setup.exe) | Windows 10/11 x64 | Choose an install folder and shortcuts |
-| [Portable ZIP](https://github.com/namedkenzo/NamedClients/releases/download/namedp-v1.0.1/namedP-1.0.1-windows-x64.zip) | Windows 10/11 x64 | Extract **all files**, run `namedP.exe` |
-| [Android APK](https://github.com/namedkenzo/NamedClients/releases/download/namedp-v1.0.1/namedP-1.0.1-android.apk) | Android 8+, arm64 | Back up alpha profiles before reinstalling |
+| [Setup EXE](https://github.com/namedkenzo/NamedClients/releases/download/namedp-v1.0.2/namedP-1.0.2-windows-x64-setup.exe) | Windows 10/11 x64 | Choose an install folder and shortcuts |
+| [Portable ZIP](https://github.com/namedkenzo/NamedClients/releases/download/namedp-v1.0.2/namedP-1.0.2-windows-x64.zip) | Windows 10/11 x64 | Extract **all files**, run `namedP.exe` |
+| [Android APK](https://github.com/namedkenzo/NamedClients/releases/download/namedp-v1.0.2/namedP-1.0.2-android.apk) | Android 8+, arm64 | Back up alpha profiles before reinstalling |
 
 ## Connect, without the clutter
+
+**1.0.2 stability:** established tunnels tolerate isolated probe loss while authenticated data is still arriving. Real silent failures still time out. For the matching download-queue fix, update the panel to [namedICMP v0.5.1](https://github.com/namedkenzo/NamedICMP/releases/tag/v0.5.1). Existing stable Android 1.0.0/1.0.1 installations can update in place with the same signing identity; do not uninstall them.
 
 Copy the complete `pingtunnel://` link from your panel → **Paste** → **Connect**.
 The configuration chooses VPN or local SOCKS5; there is no separate home-screen mode switch.
@@ -30,13 +32,13 @@ Android also offers **+** for manual input and a profile Details screen.
 - **Your existing profiles:** separate TCP/UDP flows, numeric **or** encryption-only credentials,
   IPv4/IPv6 endpoints and domains. No web-panel update is needed for the 1.0 visual refresh.
 
-[Windows guide](docs/NAMEDP.md) · [Android guide](android/README.md) · [1.0.1 changes](docs/RELEASE-namedp-v1.0.1.md)
+[Windows guide](docs/NAMEDP.md) · [Android guide](android/README.md) · [1.0.2 changes](docs/RELEASE-namedp-v1.0.2.md)
 
 ## A look inside
 
 | Windows | Android |
 | --- | --- |
-| ![Windows dark interface](https://github.com/namedkenzo/NamedClients/releases/download/namedp-v1.0.1/windows-preview-dark.png) | ![Android light interface](https://github.com/namedkenzo/NamedClients/releases/download/namedp-v1.0.1/android-light-idle.png) |
+| ![Windows dark interface](https://github.com/namedkenzo/NamedClients/releases/download/namedp-v1.0.2/windows-preview-dark.png) | ![Android light interface](https://github.com/namedkenzo/NamedClients/releases/download/namedp-v1.0.2/android-light-idle.png) |
 
 Screenshots are credential-free interface previews, not evidence of a live VPN connection.
 
@@ -45,9 +47,9 @@ Screenshots are credential-free interface previews, not evidence of a live VPN c
 Close old Windows copies, then run Setup or extract the new ZIP into a clean folder.
 Administrator access is required for the raw ICMP socket and Wintun.
 
-**Android alpha → 1.0.1 needs a one-time reinstall.** The old signing key was not preserved by the earlier build script.
+**Android alpha → 1.0.2 needs a one-time reinstall.** The old signing key was not preserved by the earlier build script.
 Before uninstalling, open each profile → Copy and save its complete link somewhere private.
-Then uninstall the alpha, install 1.0.1 and Paste your links. Uninstalling erases Keystore profiles.
+Then uninstall the alpha, install 1.0.2 and Paste your links. Uninstalling erases Keystore profiles.
 The new non-debuggable release uses a new signing identity, with the owner's approval.
 Future updates must match this identity; the private key is not placed in public Actions caches.
 See [signing and recovery](docs/ANDROID_SIGNING.md). This is not a Play Store build.

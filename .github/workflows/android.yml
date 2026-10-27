@@ -25,6 +25,10 @@ jobs:
         with:
           go-version: '1.27.3'
       - run: go test -race -v ./internal/androidrelay ./internal/client
+      - name: Check stability Go formatting
+        run: |
+          files=(internal/client/{health,health_test,transport,socket_android}.go cmd/namedp-engine/main.go cmd/namedp-android-engine/main_android.go)
+          test -z "$(gofmt -l "${files[@]}")"
       - run: go vet ./internal/androidrelay
       - run: node scripts/test_android_version.cjs
       - uses: actions/checkout@v7

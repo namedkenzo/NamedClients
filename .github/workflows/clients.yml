@@ -1,7 +1,7 @@
 name: namedP clients · build, verify and release
 on:
   push:
-    branches: [main, client-polish]
+    branches: [main, client-polish, connection-stability]
   pull_request:
   workflow_dispatch:
 permissions:
